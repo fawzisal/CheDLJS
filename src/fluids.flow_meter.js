@@ -477,7 +477,7 @@ export function C_Reader_Harris_Gallagher_wet_venturi_tube({mg, ml, rhog, rhol, 
     let beta = Do/D;
     let beta2 = beta*beta;
     let Fr_gas_th = Frg/(beta2*Math.sqrt(beta));
-    let n = max(0.583 - 0.18*beta2 - 0.578*Math.exp(-0.8*Frg/H),
+    let n = Math.max(0.583 - 0.18*beta2 - 0.578*Math.exp(-0.8*Frg/H),
             0.392 - 0.18*beta2);
     let t0 = rhog/rhol;
     let t1 = (t0)**n;

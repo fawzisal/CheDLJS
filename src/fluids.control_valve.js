@@ -1,4 +1,5 @@
 import { R, psi, gallon, minute } from './fluids.constants.js';
+import { stringInterpolate, float, listZip } from './_pyjs.js';
 import { interp, implementation_optimize_tck, splev } from './fluids.numerics_init.js';
 import { Cv_to_Kv, Kv_to_Cv } from './fluids.fittings.js';
 
@@ -34,23 +35,25 @@ export function FF_critical_pressure_ratio_l({Psat, Pc}) {
 export function control_valve_choke_P_l({Psat, Pc, FL, P1=null, P2=null, disp=true}) {
     let FF = 0.96 - 0.28*Math.sqrt(Psat/Pc); //FF_critical_pressure_ratio_l(Psat=Psat, Pc=Pc)
     let Pmin_absolute = FF*Psat;
+    let ans;
     if( P2 === null ) {
-        let ans = P2 = FF*FL*FL*Psat - FL*FL*P1 + P1;
+        ans = P2 = FF*FL*FL*Psat - FL*FL*P1 + P1;
     } else if( P1 === null ) {
         ans = P1 = (FF*FL*FL*Psat - P2)/(FL*FL - 1.0);
     } else {
         throw new Error( 'ValueError','Either P1 or P2 needs to be specified' );
     }
     if( P2 > P1 && disp ) {
-        throw new Error( 'ValueError',_pyjs.stringInterpolate( 'Specified P1 is too low for choking to occur at any downstream pressure; minimum upstream pressure for choking to be possible is %g Pa.', [Pmin_absolute ] ) );
+        throw new Error( 'ValueError',stringInterpolate( 'Specified P1 is too low for choking to occur at any downstream pressure; minimum upstream pressure for choking to be possible is %g Pa.', [Pmin_absolute ] ) );
     }
     return ans;
 }
 
 
 export function control_valve_choke_P_g({xT, gamma, P1=null, P2=null}) {
+    let ans;
     if( P2 === null ) {
-        let ans = P2 = P1*(-5.0*gamma*xT + 7.0)/7.0;
+        ans = P2 = P1*(-5.0*gamma*xT + 7.0)/7.0;
     } else if( P1 === null ) {
         ans = P1 = -7.0*P2/(5.0*gamma*xT - 7.0);
     } else {
@@ -89,9 +92,10 @@ export function Reynolds_valve({nu, Q, D1, FL, Fd, C}) {
 
 export function loss_coefficient_piping({d, D1=null, D2=null}) {
     let loss = 0.;
+    let dr, dr2;
     if( D1 ) {
-        let dr = d/D1;
-        let dr2 = dr*dr;
+        dr = d/D1;
+        dr2 = dr*dr;
         loss += 1. - dr2*dr2; // Inlet flow energy
         loss += 0.5*(1. - dr2)*(1.0 - dr2); // Inlet reducer
     }
@@ -106,23 +110,24 @@ export function loss_coefficient_piping({d, D1=null, D2=null}) {
 
 
 export function Reynolds_factor({FL, C, d, Rev, full_trim=true}) {
+    let FR;
     if( full_trim ) {
-        let n1 = N2/(min(C/(d*d), 0.04))**2; // C/d**2 must not exceed 0.04
-        let FR_1a = 1.0 + (0.33*Math.sqrt(FL))/Math.sqrt(Math.sqrt(n1))*Math.log10(Rev/10000.);
+        let n1 = N2/(Math.min(C/(d*d), 0.04))**2; // C/d**2 must not exceed 0.04
+        let FR_1a = 1.0 + (0.33*Math.sqrt(FL))/Math.sqrt(Math.sqrt(n1))*Math.log10(Rev/10000);
         let FR_2 = 0.026/FL*Math.sqrt(n1*Rev);
         if( Rev < 10.0 ) {
-            let FR = FR_2;
+            FR = FR_2;
         } else {
-            FR = min(FR_2, FR_1a);
+            FR = Math.min(FR_2, FR_1a);
         }
     } else {
         let n2 = 1 + N32*(C/d**2)**(2/3.);
-        let FR_3a = 1 + (0.33*Math.sqrt(FL))/Math.sqrt(Math.sqrt(n2))*Math.log10(Rev/10000.);
-        let FR_4 = min(0.026/FL*Math.sqrt(n2*Rev), 1);
+        let FR_3a = 1 + (0.33*Math.sqrt(FL))/Math.sqrt(Math.sqrt(n2))*Math.log10(Rev/10000);
+        let FR_4 = Math.min(0.026/FL*Math.sqrt(n2*Rev), 1);
         if( Rev < 10 ) {
             FR = FR_4;
         } else {
-            FR = min(FR_3a, FR_4);
+            FR = Math.min(FR_3a, FR_4);
         }
     }
     return FR;
@@ -132,8 +137,9 @@ export function Reynolds_factor({FL, C, d, Rev, full_trim=true}) {
 export function size_control_valve_l({rho, Psat, Pc, mu, P1, P2, Q, D1=null, D2=null,
                          d=null, FL=0.9, Fd=1, allow_choked=true,
                          allow_laminar=true, full_output=false}) {
+    let ans;
     if( full_output ) {
-        let ans = {'FLP': null, 'FP': null, 'FR': null};
+        ans = {'FLP': null, 'FP': null, 'FR': null};
     }
     [P1, P2, Psat, Pc] = [P1/1000., P2/1000., Psat/1000., Pc/1000.];
     Q = Q*3600.; // m^3/s to m^3/hr, according to constants in standard
@@ -143,16 +149,18 @@ export function size_control_valve_l({rho, Psat, Pc, mu, P1, P2, Q, D1=null, D2=
     let dP = P1 - P2;
     let FF = FF_critical_pressure_ratio_l( {Psat: Psat, Pc: Pc });
     let choked = is_choked_turbulent_l( {dP: dP, P1: P1, Psat: Psat, FF: FF, FL: FL });
+    let C;
     if( choked && allow_choked ) {
         // Choked flow, equation 3
-        let C = Q/N1/FL*Math.sqrt(rho/rho0/(P1 - FF*Psat));
+        C = Q/N1/FL*Math.sqrt(rho/rho0/(P1 - FF*Psat));
     } else {
         // non-choked flow, eq 1
         C = Q/N1*Math.sqrt(rho/rho0/dP);
     }
+    let Rev;
     if( D1 === null && D2 === null && d === null ) {
         // Assume turbulent if no diameters are provided, no other calculations
-        let Rev = 1e5;
+        Rev = 1e5;
     } else {
         // m to mm, according to constants in standard
         let [D1, D2, d] = [D1*1000., D2*1000., d*1000.];
@@ -166,10 +174,11 @@ export function size_control_valve_l({rho, Psat, Pc, mu, P1, P2, Q, D1=null, D2=
             function iterate_piping_turbulent_l({Ci, iterations}) {
                 let loss = loss_coefficient_piping(d, D1, D2);
                 let FP = 1.0/Math.sqrt(1 + loss/N2*(Ci/d**2)**2);
+                let loss_upstream;
                 if( d > D1 ) {
-                    let loss_upstream = 0.0;
+                    loss_upstream = 0.0;
                 } else {
-                    let loss_upstream = loss_coefficient_piping(d, D1);
+                    loss_upstream = loss_coefficient_piping(d, D1);
                 }
 
                 let FLP = FL*1.0/Math.sqrt(1 + FL**2/N2*loss_upstream*(Ci/d**2)**2);
@@ -200,10 +209,11 @@ export function size_control_valve_l({rho, Psat, Pc, mu, P1, P2, Q, D1=null, D2=
                         function iterate_piping_laminar_l(C) {
                 let Ci = 1.3*C;
                 let Rev = Reynolds_valve( {nu: nu, Q: Q, D1: D1, FL: FL, Fd: Fd, C: Ci });
+                let FR;
                 if( Ci/d**2 > 0.016*N18 ) {
-                    let FR = Reynolds_factor( {FL: FL, C: Ci, d: d, Rev: Rev, full_trim: false });
+                    FR = Reynolds_factor( {FL: FL, C: Ci, d: d, Rev: Rev, full_trim: false });
                 } else {
-                    let FR = Reynolds_factor( {FL: FL, C: Ci, d: d, Rev: Rev, full_trim: true });
+                    FR = Reynolds_factor( {FL: FL, C: Ci, d: d, Rev: Rev, full_trim: true });
                 }
                 if( C/FR >= Ci ) {
                     Ci = iterate_piping_laminar_l(Ci); // pragma: no cover
@@ -250,24 +260,27 @@ export function size_control_valve_g({T, MW, mu, gamma, Z, P1, P2, Q, D1=null, D
     let dP = P1 - P2;
     let Fgamma = gamma/1.40;
     let x = dP/P1;
-    let Y = max(1 - x/(3*Fgamma*xT), 2/3.);
+    let Y = Math.max(1 - x/(3*Fgamma*xT), 2/3.);
 
     let choked = is_choked_turbulent_g(x, Fgamma, xT);
+    let C;
     if( choked && allow_choked ) {
         // Choked, and flow coefficient from eq 14a
-        let C = Q/(N9*P1*Y)*Math.sqrt(MW*T*Z/xT/Fgamma);
+        C = Q/(N9*P1*Y)*Math.sqrt(MW*T*Z/xT/Fgamma);
     } else {
         // Non-choked, and flow coefficient from eq 8a
         C = Q/(N9*P1*Y)*Math.sqrt(MW*T*Z/x);
     }
 
 
+    let ans;
     if( full_output ) { // numba: delete
-        let ans = {'FP': null, 'xTP': null, 'FR': null, 'choked': choked, 'Y': Y};  // numba: delete
+        ans = {'FP': null, 'xTP': null, 'FR': null, 'choked': choked, 'Y': Y};  // numba: delete
     }
+    let Rev;
     if( D1 === null && D2 === null && d === null ) {
         // Assume turbulent if no diameters are provided, no other calculations
-        let Rev = 1e5;
+        Rev = 1e5;
         if( full_output ) {  // numba: delete
             ans['Rev'] = null;
         }
@@ -335,10 +348,11 @@ export function size_control_valve_g({T, MW, mu, gamma, Z, P1, P2, Q, D1=null, D
                         function iterate_piping_laminar_g(C) {
                 let Ci = 1.3*C;
                 let Rev = Reynolds_valve( {nu: nu, Q: Q, D1: D1, FL: FL, Fd: Fd, C: Ci });
+                let FR;
                 if( Ci/d**2 > 0.016*N18 ) {
-                    let FR = Reynolds_factor( {FL: FL, C: Ci, d: d, Rev: Rev, full_trim: false });
+                    FR = Reynolds_factor( {FL: FL, C: Ci, d: d, Rev: Rev, full_trim: false });
                 } else {
-                    let FR = Reynolds_factor( {FL: FL, C: Ci, d: d, Rev: Rev, full_trim: true });
+                    FR = Reynolds_factor( {FL: FL, C: Ci, d: d, Rev: Rev, full_trim: true });
                 }
                 if( C/FR >= Ci ) {
                     let Ci = iterate_piping_laminar_g(Ci);
@@ -416,19 +430,21 @@ export function convert_flow_coefficient({flow_coefficient, old_scale, new_scale
     0.0002776532068951358
     */
     // Convert from `old_scale` to Kv
+    let Kv, Cv;
     if( old_scale === 'Cv' ) {
-        let Kv = Cv_to_Kv(flow_coefficient);
+        Kv = Cv_to_Kv(flow_coefficient);
     } else if( old_scale === 'Kv' ) {
         Kv = flow_coefficient;
     } else if( old_scale === 'Av' ) {
-        let Cv = flow_coefficient/(Math.sqrt(rho0/psi)*gallon/minute);
+        Cv = flow_coefficient/(Math.sqrt(rho0/psi)*gallon/minute);
         Kv = Cv_to_Kv(Cv);
     } else {
         throw new Error( 'NotImplementedError',"Supported scales are 'Cv', 'Kv', and 'Av'" );
     }
 
+    let ans;
     if( new_scale === 'Cv' ) {
-        let ans = Kv_to_Cv(Kv);
+        ans = Kv_to_Cv(Kv);
     } else if( new_scale === 'Kv' ) {
         ans = Kv;
     } else if( new_scale === 'Av' ) {
@@ -476,7 +492,7 @@ export function control_valve_noise_l_2015({m, P1, P2, Psat, rho, c, Kv, d, Di, 
 
     let C = Kv_to_Cv(Kv);
     let xF = (P1-P2)/(P1-Psat);
-    let dPc = min(P1-P2, FL*FL*(P1 - Psat));
+    let dPc = Math.min(P1-P2, FL*FL*(P1 - Psat));
 
     if( xFz === null ) {
         let xFz = 0.9*1.0/Math.sqrt(1.0 + 3.0*Fd*Math.sqrt(C/(N34*FL)));
@@ -496,10 +512,11 @@ export function control_valve_noise_l_2015({m, P1, P2, Psat, rho, c, Kv, d, Di, 
     let x2 = x1*x1;
     x1 = x2*x2*x1;
 
+    let eta_cav, Wa;
     if( cavitating ) {
-    	let eta_cav = 0.32*eta_turb*Math.sqrt((P1 - P2)/(dPc*xFzp1))*Math.exp(5.0*xFzp1)*Math.sqrt((1.0
+    	eta_cav = 0.32*eta_turb*Math.sqrt((P1 - P2)/(dPc*xFzp1))*Math.exp(5.0*xFzp1)*Math.sqrt((1.0
                              - xFzp1)/(1.0 - xF))*(x1)*x0*Math.sqrt(x0);
-    	let Wa = (eta_turb+eta_cav)*Wm;
+    	Wa = (eta_turb+eta_cav)*Wm;
     } else {
     	Wa = eta_turb*Wm;
     }
@@ -508,17 +525,19 @@ export function control_valve_noise_l_2015({m, P1, P2, Psat, rho, c, Kv, d, Di, 
     let Stp = 0.036*FL*FL*C*Fd**0.75/(N34*xFzp1*Math.sqrt(xFzp1)*d*d)*(1.0/(P1 - Psat))**0.57;
     let f_p_turb = Stp*Uvc/Dj;
 
+    let x3, x4, f_p_cav, f_p_cav_inv, f_p_cav_inv_1_5, f_p_cav_inv_1_5_1_4, f_p_cav_1_5, eta_denom, t1, t2;
+
     if( cavitating ) {
-        let x3 = ((1.0 - xF)/(1.0 - xFzp1));
-        let x4 = xFzp1/xF;
-        let f_p_cav = 6.0*f_p_turb*x3*x3*x4*x4*Math.sqrt(x4);
-        let f_p_cav_inv = 1.0/f_p_cav;
-        let f_p_cav_inv_1_5 = f_p_cav_inv*Math.sqrt(f_p_cav_inv);
-        let f_p_cav_inv_1_5_1_4 = 0.25*f_p_cav_inv_1_5;
-        let f_p_cav_1_5 = 1.0/f_p_cav_inv_1_5;
-        let eta_denom = 1.0/(eta_turb + eta_cav);
-        let t1 = eta_turb*eta_denom;
-        let t2 = eta_cav*eta_denom;
+        x3 = ((1.0 - xF)/(1.0 - xFzp1));
+        x4 = xFzp1/xF;
+        f_p_cav = 6.0*f_p_turb*x3*x3*x4*x4*Math.sqrt(x4);
+        f_p_cav_inv = 1.0/f_p_cav;
+        f_p_cav_inv_1_5 = f_p_cav_inv*Math.sqrt(f_p_cav_inv);
+        f_p_cav_inv_1_5_1_4 = 0.25*f_p_cav_inv_1_5;
+        f_p_cav_1_5 = 1.0/f_p_cav_inv_1_5;
+        eta_denom = 1.0/(eta_turb + eta_cav);
+        t1 = eta_turb*eta_denom;
+        t2 = eta_cav*eta_denom;
     }
     let fr = c_pipe/(Math.PI*Di);
     let fr_inv = 1.0/fr;
@@ -539,7 +558,7 @@ export function control_valve_noise_l_2015({m, P1, P2, Psat, rho, c, Kv, d, Di, 
     let fr_inv_1_5 = fr_inv*Math.sqrt(fr_inv);
 
 
-    for( let i of range(fis_length) ) {
+    for( let i; i<fis_length; i++ ) {
     //for fi, fi_inv, fi_1_5, fi_1_5_inv, A in zip(fis_l_2015, fis_l_2015_inv, fis_l_2015_1_5, fis_l_2015_n1_5, A_weights_l_2015):
     //    fi_inv = 1.0/fi
     //    fi_turb_ratio = fis_l_2015[i]*f_p_turb_inv
@@ -547,6 +566,7 @@ export function control_valve_noise_l_2015({m, P1, P2, Psat, rho, c, Kv, d, Di, 
         let F_turb = -.8 - Math.log10(0.25*f_p_turb_inv3*fis_l_2015_3[i]
                                    + fis_l_2015_inv[i]*f_p_turb);
         //F_turbs.append(F_turb)
+        let LPif;
         if( cavitating ) {
             //fi_cav_ratio = fi_1_5*f_p_cav_inv_1_5#   (fi*f_p_cav_inv)**1.5
             //F_cav = -.9 - Math.log10(f_p_cav_inv_1_5_1_4*fis_l_2015_1_5[i] + fis_l_2015_n1_5[i]*f_p_cav_1_5) // 1.0/fi_cav_ratio, fi_1_5_inv*f_p_cav_1_5
@@ -554,9 +574,9 @@ export function control_valve_noise_l_2015({m, P1, P2, Psat, rho, c, Kv, d, Di, 
             // 0.1258925411794167310 = 10**(-0.9)
 
             // 4.3429448190325175*Math.log(x) -> 10*Math.log10(x)
-            let LPif = (Lpi + 4.3429448190325175*Math.log(t1*10.0**(F_turb) + t2*F_cav_fact));
+            LPif = (Lpi + 4.3429448190325175*Math.log(t1*10.0**(F_turb) + t2*F_cav_fact));
         } else {
-            let LPif = Lpi + F_turb*10.0;
+            LPif = Lpi + F_turb*10.0;
         }
         //LPis.append(LPif)
         // -8.685889638065035 = -20*Math.log10(x)
@@ -603,8 +623,9 @@ export function control_valve_noise_g_2011({m, P1, P2, T1, rho, gamma, MW, Kv,
     //assert xc < x_vcc
     //assert x_vcc < xB
     //assert xB < xCE
+    let regime;
     if( x <= xc ) {
-        let regime = 1;
+        regime = 1;
     } else if( xc < x <= x_vcc ) {
         regime = 2;
     } else if( x_vcc < x <= xB ) {
@@ -619,28 +640,31 @@ export function control_valve_noise_g_2011({m, P1, P2, T1, rho, gamma, MW, Kv,
     let Dj = N14*Fd*Math.sqrt(C*(FL_term));
 
     let Mj5 = Math.sqrt(2.0/(k - 1.0)*( 22.0**((k-1.0)/k) - 1.0  ));
+    let Mvc, Mj;
     if( regime === 1 ) {
-        let Mvc = Math.sqrt((2.0/(k-1.0)) *((1.0 - x/FL_term**2)**((1.0 - k)/k)   - 1.0)); // Not match
+        Mvc = Math.sqrt((2.0/(k-1.0)) *((1.0 - x/FL_term**2)**((1.0 - k)/k)   - 1.0)); // Not match
     } else if( regime === 2 || regime === 3 || regime === 4 ) {
-        let Mj = Math.sqrt((2.0/(k-1.0))*((1.0/(alpha*(1.0-x)))**((k - 1.0)/k) - 1.0)); // Not match
-        Mj = min(Mj, Mj5);
+        Mj = Math.sqrt((2.0/(k-1.0))*((1.0/(alpha*(1.0-x)))**((k - 1.0)/k) - 1.0)); // Not match
+        Mj = Math.min(Mj, Mj5);
 }
     //elif regime == 5:
     //    pass
 
+    let Tvc, cvc, Wm, Tvcc, cvcc;
     if( regime === 1 ) {
-        let Tvc = T1*(1.0 - x/(FL_term)**2)**((k - 1.0)/k);
-        let cvc = Math.sqrt(k*P1/rho*(1 - x/(FL_term)**2)**((k-1.0)/k));
-        let Wm = 0.5*m*(Mvc*cvc)**2;
+        Tvc = T1*(1.0 - x/(FL_term)**2)**((k - 1.0)/k);
+        cvc = Math.sqrt(k*P1/rho*(1 - x/(FL_term)**2)**((k-1.0)/k));
+        Wm = 0.5*m*(Mvc*cvc)**2;
     } else {
-        let Tvcc = 2.0*T1/(k + 1.0);
-        let cvcc = Math.sqrt(2.0*k*P1/(k+1.0)/rho);
+        Tvcc = 2.0*T1/(k + 1.0);
+        cvcc = Math.sqrt(2.0*k*P1/(k+1.0)/rho);
         Wm = 0.5*m*cvcc*cvcc;
     }
     // print('Wm', Wm)
 
+    let fp;
     if( regime === 1 ) {
-        let fp = Stp*Mvc*cvc/Dj;
+        fp = Stp*Mvc*cvc/Dj;
     } else if( regime === 2 || regime === 3 ) {
         fp = Stp*Mj*cvcc/Dj;
     } else if( regime === 4 ) {
@@ -651,8 +675,9 @@ export function control_valve_noise_g_2011({m, P1, P2, T1, rho, gamma, MW, Kv,
     let fp_inv = 1.0/fp;
 //     print('fp', fp)
 
+    let eta;
     if( regime === 1 ) {
-        let eta = 10.0**An*FL_term**2*(Mvc)**3;
+        eta = 10.0**An*FL_term**2*(Mvc)**3;
     } else if( regime === 2 ) {
         eta = 10.0**An*x/x_vcc*Mj**(6.6*FL_term*FL_term);
     } else if( regime === 3 ) {
@@ -675,20 +700,21 @@ export function control_valve_noise_g_2011({m, P1, P2, T1, rho, gamma, MW, Kv,
     let M2 = 4.0*m/(Math.PI*Di*Di*rho2*c2);
 //     print('M2', M2)
 
-    let Lg = 16.0*Math.log10(1.0/(1.0 - min(M2, 0.3))); // dB
+    let Lg = 16.0*Math.log10(1.0/(1.0 - Math.min(M2, 0.3))); // dB
 
+    let Up, UR, WmR, fpR, MR, eta_R, WaR, L_piR;
     if( M2 > 0.3 ) {
-        let Up = 4.0*m/(Math.PI*rho2*Di*Di);
-        let UR = Up*Di*Di/(beta*d*d);
-        let WmR = 0.5*m*UR*UR*( (1.0 - d*d/(Di*Di))**2 + 0.2);
-        let fpR = Stp*UR/d;
-        let MR = UR/c2;
+        Up = 4.0*m/(Math.PI*rho2*Di*Di);
+        UR = Up*Di*Di/(beta*d*d);
+        WmR = 0.5*m*UR*UR*( (1.0 - d*d/(Di*Di))**2 + 0.2);
+        fpR = Stp*UR/d;
+        MR = UR/c2;
         // Value listed in appendix here is wrong, "based on another
         // earlier standard. Calculation thereon is wrong". Assumed
         // correct, matches spreadsheet to three decimals.
-        let eta_R = 10**An*MR**3;
-        let WaR = eta_R*WmR;
-        let L_piR = 10.0*Math.log10((3.2E9)*WaR*rho2*c2/(Di*Di)) + Lg;
+        eta_R = 10**An*MR**3;
+        WaR = eta_R*WmR;
+        L_piR = 10.0*Math.log10((3.2E9)*WaR*rho2*c2/(Di*Di)) + Lg;
     }
     let L_pi = 10.0*Math.log10((3.2E9)*Wa*rho2*c2/(Di*Di)) + Lg;
 //     print('L_pi', L_pi)
@@ -697,8 +723,9 @@ export function control_valve_noise_g_2011({m, P1, P2, T1, rho, gamma, MW, Kv,
     let fo = 0.25*fr*(c2/c_air);
     let fg = Math.sqrt(3)*c_air**2/(Math.PI*t_pipe*c_pipe);
 
+    let dTL;
     if( d > 0.15 ) {
-        let dTL = 0.0;
+        dTL = 0.0;
     } else if( 0.05 <= d <= 0.15 ) {
         dTL = -16660.0*d**3 + 6370.0*d**2 - 813.0*d + 35.8;
     } else {
@@ -712,7 +739,7 @@ export function control_valve_noise_g_2011({m, P1, P2, T1, rho, gamma, MW, Kv,
 //    LPis = []
 //    LPIRs = []
 //    L_pe1m_fis = []
-    for( let [ fi, A_weight ] of _pyjs.listZip(fis_l_2015, A_weights_l_2015) ) {
+    for( let [ fi, A_weight ] of listZip(fis_l_2015, A_weights_l_2015) ) {
         // This gets adjusted when Ma > 0.3
         let fi_turb_ratio = fi*fp_inv;
 
@@ -724,6 +751,7 @@ export function control_valve_noise_g_2011({m, P1, P2, T1, rho, gamma, MW, Kv,
 //         print(Lpif, 'Lpif')
 //        LPis.append(Lpif)
 
+        let LpiSf;
         if( M2 > 0.3 ) {
             let fiR_turb_ratio = fi/fpR;
             t1 = 1.0 + (0.5*fiR_turb_ratio)**2.5;
@@ -732,12 +760,13 @@ export function control_valve_noise_g_2011({m, P1, P2, T1, rho, gamma, MW, Kv,
             let LpiRf = L_piR - 8.0 - 10.0*Math.log10(t1*t2);
 //            LPIRs.append(LpiRf)
 
-            let LpiSf = 10.0*Math.log10( 10**(0.1*Lpif) + 10.0**(0.1*LpiRf) );
+            LpiSf = 10.0*Math.log10( 10**(0.1*Lpif) + 10.0**(0.1*LpiRf) );
         }
+        let Gx, Gy;
         if( fi < fo ) {
-            let Gx = (fo/fr)**(2.0/3.0)*(fi/fo)**4.0;
+            Gx = (fo/fr)**(2.0/3.0)*(fi/fo)**4.0;
             if( fo < fg ) {
-                let Gy = (fo/fg);
+                Gy = (fo/fg);
             } else {
                 Gy = 1.0;
             }
@@ -761,9 +790,10 @@ export function control_valve_noise_g_2011({m, P1, P2, T1, rho, gamma, MW, Kv,
         let den = (rho2*c2 + 2.0*Math.PI*t_pipe*fi*rho_pipe*eta_s)/(415.0*Gy) + 1.0;
         let TL_fi = 10.0*Math.log10(8.25E-7*(c2/(t_pipe*fi))**2*Gx/den*P_air_ratio) - dTL;
 
+        let term;
         // Formula forgot to use Math.log10, but Math.log10 is needed for the numbers
         if( M2 > 0.3 ) {
-            let term = LpiSf;
+            term = LpiSf;
         } else {
             term = Lpif;
         }

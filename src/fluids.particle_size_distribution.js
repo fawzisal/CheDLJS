@@ -479,7 +479,7 @@ let _mean_size_iso_docstring = '_mean_size_iso_docstring';
             let denominator = this._pdf_basis_integral_definite( {d_min: 0.0, d_max: this.d_excessive, n: power });
             ans = numerator/denominator;
         }
-        ans = max(ans, 0.0);
+        ans = Math.max(ans, 0.0);
         if( this.truncated ) {
             if( d < this.d_min || d > this.d_max ) {
                 return 0.0;
@@ -496,9 +496,9 @@ let _mean_size_iso_docstring = '_mean_size_iso_docstring';
             // support for numerical integrals
             let numerator = this._pdf_basis_integral_definite( {d_min: 0.0, d_max: d, n: power });
             let denominator = this._pdf_basis_integral_definite( {d_min: 0.0, d_max: this.d_excessive, n: power });
-            let ans =  max(numerator/denominator, 0.0);
+            let ans =  Math.max(numerator/denominator, 0.0);
         } else {
-            ans = max(this._cdf(d=d), 0.0);
+            ans = Math.max(this._cdf(d=d), 0.0);
         }
         if( this.truncated ) {
             if( d <= this.d_min ) {
@@ -792,7 +792,7 @@ let _mean_size_iso_docstring = '_mean_size_iso_docstring';
         let err = 0.0;
         let dist = distribution(...list(vals));
         let l = this.size_classes ? len(this.fractions) : len(this.fractions) - 1;
-        for( let i of range(l) ) {
+        for( let i; i<l; i++ ) {
             let delta_cdf = dist.delta_cdf( {d_min: this.ds[i], d_max: this.ds[i+1] });
             err += abs(delta_cdf - this.fractions[i]);
         }
@@ -1161,7 +1161,7 @@ psd = PSDCustom(distribution)
 //         this.ds = ds;
 //         this.fractions = fractions;
 
-//         this.d_excessive = max(ds);
+//         this.d_excessive = Math.max(ds);
 
 
 //         this.fraction_cdf = cumsum(fractions);
@@ -1185,7 +1185,7 @@ psd = PSDCustom(distribution)
 
 
 //     _pdf( d) {
-//         return max(0.0, float(this.pdf_spline(d)));
+//         return Math.max(0.0, float(this.pdf_spline(d)));
 //     }
 
 //     _cdf( d) {
@@ -1193,7 +1193,7 @@ psd = PSDCustom(distribution)
 //             // Handle spline values past 1 that decrease to zero
 //             return 1.0;
 //         }
-//         return max(0.0, float(this.cdf_spline(d)));
+//         return Math.max(0.0, float(this.cdf_spline(d)));
 //     }
 
 //     _pdf_basis_integral( d, n) {
@@ -1214,7 +1214,7 @@ psd = PSDCustom(distribution)
 //                 this.basis_integrals[n] = UnivariateSpline(ds, basis_integral, { ext: 3, s: 0 }).antiderivative(n=1);
 //             }
 //         }
-//         return max(float(this.basis_integrals[n](d)), 0.0);
+//         return Math.max(float(this.basis_integrals[n](d)), 0.0);
 //     }
 
 

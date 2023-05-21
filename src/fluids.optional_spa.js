@@ -70,35 +70,35 @@ export function heliocentric_longitude(jme) {
     let l3 = 0.0;
     let l4 = 0.0;
     let l5 = 0.0;
-    for( let row of range(64) ) {
+    for( let row; row<64; row++ ) {
         let HELIO_LONG_TABLE_LIST_0_ROW = HELIO_LONG_TABLE_LIST_0[row];
         l0 += (HELIO_LONG_TABLE_LIST_0_ROW[0]
                * Math.cos(HELIO_LONG_TABLE_LIST_0_ROW[1]
                         + HELIO_LONG_TABLE_LIST_0_ROW[2] * jme)
                );
     }
-    for( let row of range(34) ) {
+    for( let row; row<34; row++ ) {
         let HELIO_LONG_TABLE_LIST_1_ROW = HELIO_LONG_TABLE_LIST_1[row];
         l1 += (HELIO_LONG_TABLE_LIST_1_ROW[0]
                * Math.cos(HELIO_LONG_TABLE_LIST_1_ROW[1]
                         + HELIO_LONG_TABLE_LIST_1_ROW[2] * jme)
                );
     }
-    for( let row of range(20) ) {
+    for( let row; row<20; row++ ) {
         let HELIO_LONG_TABLE_LIST_2_ROW = HELIO_LONG_TABLE_LIST_2[row];
         l2 += (HELIO_LONG_TABLE_LIST_2_ROW[0]
                * Math.cos(HELIO_LONG_TABLE_LIST_2_ROW[1]
                         + HELIO_LONG_TABLE_LIST_2_ROW[2] * jme)
                );
     }
-    for( let row of range(7) ) {
+    for( let row; row<7; row++ ) {
         let HELIO_LONG_TABLE_LIST_3_ROW = HELIO_LONG_TABLE_LIST_3[row];
         l3 += (HELIO_LONG_TABLE_LIST_3_ROW[0]
                * Math.cos(HELIO_LONG_TABLE_LIST_3_ROW[1]
                         + HELIO_LONG_TABLE_LIST_3_ROW[2] * jme)
                );
     }
-    for( let row of range(3) ) {
+    for( let row; row<3; row++ ) {
         let HELIO_LONG_TABLE_LIST_4_ROW = HELIO_LONG_TABLE_LIST_4[row];
         l4 += (HELIO_LONG_TABLE_LIST_4_ROW[0]
                * Math.cos(HELIO_LONG_TABLE_LIST_4_ROW[1]
@@ -114,7 +114,7 @@ export function heliocentric_longitude(jme) {
 export function heliocentric_latitude(jme) {
     let b0 = 0.0;
     let b1 = 0.0;
-    for( let row of range(5) ) {
+    for( let row; row<5; row++ ) {
         let HELIO_LAT_TABLE_LIST_0_ROW = HELIO_LAT_TABLE_LIST_0[row];
         b0 += (HELIO_LAT_TABLE_LIST_0_ROW[0]
                * Math.cos(HELIO_LAT_TABLE_LIST_0_ROW[1]
@@ -141,15 +141,15 @@ export function heliocentric_radius_vector(jme) {
     let r3 = 0.0;
     let r4 = 0.0;
     // Would be possible to save a few multiplies of table1row[2]*jme, table1row[1]*jme as they are dups
-    for( let row of range(40) ) {
+    for( let row; row<40; row++ ) {
         let table0row = HELIO_RADIUS_TABLE_LIST_0[row];
         r0 += (table0row[0]*Math.cos(table0row[1] + table0row[2]*jme));
     }
-    for( let row of range(10) ) {
+    for( let row; row<10; row++ ) {
         let table1row = HELIO_RADIUS_TABLE_LIST_1[row];
         r1 += (table1row[0]*Math.cos(table1row[1] + table1row[2]*jme));
     }
-    for( let row of range(6) ) {
+    for( let row; row<6; row++ ) {
         let table2row = HELIO_RADIUS_TABLE_LIST_2[row];
         r2 += (table2row[0]*Math.cos(table2row[1] + table2row[2]*jme));
     }
@@ -225,7 +225,7 @@ export function longitude_obliquity_nutation({julian_ephemeris_century, x0, x1, 
     let delta_psi_sum = 0.0;
     let delta_eps_sum = 0.0;
     // If the sincos formulation is used, the speed up is ~8% with numba.
-    for( let row of range(63) ) {
+    for( let row; row<63; row++ ) {
         let arg = (NUTATION_YTERM_LIST_0[row]*x0 +
                NUTATION_YTERM_LIST_1[row]*x1 +
                NUTATION_YTERM_LIST_2[row]*x2 +
@@ -252,7 +252,7 @@ export function longitude_obliquity_nutation({julian_ephemeris_century, x0, x1, 
 export function longitude_nutation({julian_ephemeris_century, x0, x1, x2, x3, x4}) {
     [x0, x1, x2, x3, x4] = [deg2rad*x0, deg2rad*x1, deg2rad*x2, deg2rad*x3, deg2rad*x4];
     let delta_psi_sum = 0.0;
-    for( let row of range(63) ) {
+    for( let row; row<63; row++ ) {
 //       // None can be skipped but the multiplies can be with effort -2 to 2 with dict - just might be slower
         let argsin = (NUTATION_YTERM_LIST_0[row]*x0 +
                   NUTATION_YTERM_LIST_1[row]*x1 +
@@ -269,7 +269,7 @@ export function longitude_nutation({julian_ephemeris_century, x0, x1, x2, x3, x4
 export function obliquity_nutation({julian_ephemeris_century, x0, x1, x2, x3, x4}) {
     let delta_eps_sum = 0.0;
     [x0, x1, x2, x3, x4] = [deg2rad*x0, deg2rad*x1, deg2rad*x2, deg2rad*x3, deg2rad*x4];
-    for( let row of range(63) ) {
+    for( let row; row<63; row++ ) {
         let argcos = (NUTATION_YTERM_LIST_0[row]*x0 +
                   NUTATION_YTERM_LIST_1[row]*x1 +
                   NUTATION_YTERM_LIST_2[row]*x2 +
@@ -684,11 +684,11 @@ export function transit_sunrise_sunset({dates, lat, lon, delta_t}) {
     m[1] = _pyjs.stringInterpolate( m[1], [ 1 ] );
     m[2] = _pyjs.stringInterpolate( m[2], [ 1 ] );
     let vs = [0.0]*3;
-    for( let i of range(3) ) {
+    for( let i; i<3; i++ ) {
         vs[i] = v + 360.985647*m[i];
     }
     let n = [0.0]*3;
-    for( let i of range(3) ) {
+    for( let i; i<3; i++ ) {
         n[i] = m[i] + delta_t / 86400.0;
     }
     let a = ttday0_res[1] - ttdayn1_res[1];
@@ -712,7 +712,7 @@ export function transit_sunrise_sunset({dates, lat, lon, delta_t}) {
     let alpha_prime = [0.0]*3;
     let delta_prime = [0.0]*3;
     let Hp = [0.0]*3;
-    for( let i of range(3) ) {
+    for( let i; i<3; i++ ) {
         alpha_prime[i] = ttday0_res[1] + (n[i] * (a + b + c * n[i]))*0.5;
         delta_prime[i] = ttday0_res[2] + (n[i] * (ap + bp + cp * n[i]))*0.5;
         Hp[i] = _pyjs.stringInterpolate( (vs[i] + lon - alpha_prime[i]), [ 360 ] );
@@ -723,7 +723,7 @@ export function transit_sunrise_sunset({dates, lat, lon, delta_t}) {
     let x1 = Math.sin(radians(lat));
     let x2 = Math.cos(radians(lat));
     let h = [0.0]*3;
-    for( let i of range(3) ) {
+    for( let i; i<3; i++ ) {
         h[i] = degrees(Math.asin(x1*Math.sin(radians(delta_prime[i])) + x2 * Math.cos(radians(delta_prime[i])) * Math.cos(radians(Hp[i]))));
     }
     let T = float((m[0] - Hp[0] / 360.0) * 86400.0);

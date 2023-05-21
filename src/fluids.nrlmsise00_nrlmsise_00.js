@@ -36,7 +36,7 @@ let apt = [0.0]*4;
 //rgas = 831.44621
 //rgas = 831.4
 export function tselec(flags) {
-    for( let i of range(24) ) {
+    for( let i; i<24; i++ ) {
         if((i !== 9) ) {
             if((flags.switches[i]===1) ) {
                 flags.sw[i]=1;
@@ -228,7 +228,7 @@ export function densm({alt, d0, xm, tz, mn3, zn3, tn3, tgn3, mn2, zn2, tn2, tgn2
     let zg = zeta(z, z1);
     let zgdif = zeta(z2, z1);
     //
-    for( let k of range(mn) ) {
+    for( let k; k<mn; k++ ) {
         xs[k]=zeta(zn2[k],z1)/zgdif;
         ys[k]=1.0 / tn2[k];
     }
@@ -271,7 +271,7 @@ export function densm({alt, d0, xm, tz, mn3, zn3, tn3, tgn3, mn2, zn2, tn2, tgn2
     zg=zeta(z,z1);
     zgdif=zeta(z2,z1);
     //
-    for( let k of range(mn) ) {
+    for( let k; k<mn; k++ ) {
         xs[k] = zeta(zn3[k],z1) / zgdif;
         ys[k] = 1.0 / tn3[k];
     }
@@ -344,7 +344,7 @@ export function densu({alt, dlb, tinf, tlb, xm, alpha, tz, zlb, s2, mn1, zn1, tn
         let zg = zeta (z, z1);
         let zgdif = zeta(z2, z1);
         //
-        for( let k of range(mn) ) {
+        for( let k; k<mn; k++ ) {
             xs[k] = zeta(zn1[k], z1) / zgdif;
             ys[k] = 1.0 / tn1[k];
         }
@@ -547,7 +547,7 @@ export function globe7({p, Input, flags}) {
         }
     }
     let tinf = p[30];
-    for( let i of range(14) ) {
+    for( let i; i<14; i++ ) {
         tinf = tinf + abs(flags.sw[i+1])*t[i];
     }
     return tinf;
@@ -607,7 +607,7 @@ export function glob7s({p, Input, flags}) {
             t[10] = (1.0 + plg[0][1]*(p[80]*flags.swc[5]*Math.cos(dr*(Input.doy-p[81])) +p[85]*flags.swc[6]*Math.cos(2.0*dr*(Input.doy-p[86]))) +p[83]*flags.swc[3]*Math.cos(dr*(Input.doy-p[84])) +p[87]*flags.swc[4]*Math.cos(2.0*dr*(Input.doy-p[88]))) *((p[64]*plg[1][2]+p[65]*plg[1][4]+p[66]*plg[1][6] +p[74]*plg[1][1]+p[75]*plg[1][3]+p[76]*plg[1][5] )*Math.cos(dgtr*Input.g_long) +(p[90]*plg[1][2]+p[91]*plg[1][4]+p[92]*plg[1][6] +p[77]*plg[1][1]+p[78]*plg[1][3]+p[79]*plg[1][5] )*Math.sin(dgtr*Input.g_long));
     }
     let tt=0;
-    for( let i of range(14) ) {
+    for( let i; i<14; i++ ) {
         tt+=abs(flags.sw[i+1])*t[i];
     }
     return tt;
@@ -646,7 +646,7 @@ export function gtd7({Input, flags, output}) {
     output.t[0]=soutput.t[0];
     output.t[1]=soutput.t[1];
     if( (Input.alt>=zn2[0]) ) {
-        for( let i of range(9) ) {
+        for( let i; i<9; i++ ) {
             output.d[i]=soutput.d[i];
         }
         return;
@@ -798,7 +798,7 @@ export function gts7({Input, flags, output}) {
     let altl = [200.0, 300.0, 160.0, 250.0, 240.0, 450.0, 320.0, 450.0];
     let za = pdl[1][15];
     zn1[0] = za;
-    for( let j of range(9) ) {
+    for( let j; j<9; j++ ) {
         output.d[j]=0;
     }
     //
@@ -1077,7 +1077,7 @@ export function gts7({Input, flags, output}) {
     let ddum = densu(z,1.0, tinf, tlb, 0.0, 0.0, RandomVariable, ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
     output.t[1] = RandomVariable[0];
     if( (flags.sw[0]) ) { // pragma: no cover
-        for( let i of range(9) ) {
+        for( let i; i<9; i++ ) {
             output.d[i]=output.d[i]*1.0E6;
         }
         output.d[5]=output.d[5]/1000;

@@ -67,7 +67,7 @@ export function shape(value) {
     let dims = [len(value)];
     try {
         let iter_value = value[0];
-        for( let i of range(10) ) {
+        for( let i; i<10; i++ ) {
             dims.push(len(iter_value));
             iter_value = iter_value[0];
         }
@@ -78,7 +78,7 @@ export function shape(value) {
 }
 export function eye(N) {
     let mat = [];
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let r = [0.0]*N;
         r[i] = 1.0;
         mat.push(r);
@@ -188,11 +188,11 @@ export function inv_lu(a) {
     let ainv = range(N).map( i =>[0.0]*N );
     let pivots = [0]*Np1;
     inplace_LU(a, pivots, N);
-    for( let j of range(N) ) {
+    for( let j; j<N; j++ ) {
         let b = [0.0]*N;
         b[j] = 1.0;
         b = solve_from_lu(a, pivots, b, N).slice(1 );
-        for( let i of range(N) ) {
+        for( let i; i<N; i++ ) {
             ainv[i][j] = b[i];
         }
     }

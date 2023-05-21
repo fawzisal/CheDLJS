@@ -14,7 +14,7 @@ export function aoi({surface_tilt, surface_azimuth, solar_zenith, solar_azimuth}
     return aoi_value;
 }
 export function poa_components({aoi, dni, poa_sky_diffuse, poa_ground_diffuse}) {
-    let poa_direct = max(dni * Math.cos(radians(aoi)), 0.0);
+    let poa_direct = Math.max(dni * Math.cos(radians(aoi)), 0.0);
     if( poa_sky_diffuse !== null ) {
         let poa_diffuse = poa_sky_diffuse + poa_ground_diffuse;
     } else {

@@ -2,6 +2,7 @@ import { radians, degrees } from './fluids.helpers.js' ;
 import { inch, deg2rad, rad2deg } from './fluids.constants.js' ;
 import { friction_factor, Clamond, friction_factor_curved, ft_Crane } from './fluids.friction.js' ;
 import { horner, interp, splev, bisplev, implementation_optimize_tck, tck_interp2d_linear } from './fluids.numerics_init.js' ;
+import { float } from './_pyjs.js';
 let __all__ = ['contraction_sharp', 'contraction_round', 'contraction_round_Miller', 'contraction_conical', 'contraction_conical_Crane', 'contraction_beveled',  'diffuser_sharp', 'diffuser_conical', 'diffuser_conical_staged', 'diffuser_curved', 'diffuser_pipe_reducer', 'entrance_sharp', 'entrance_distance', 'entrance_angled', 'entrance_rounded', 'entrance_beveled', 'entrance_beveled_orifice', 'entrance_distance_45_Miller', 'exit_normal', 'bend_rounded', 'bend_rounded_Miller', 'bend_rounded_Crane', 'bend_miter', 'bend_miter_Miller', 'helix', 'spiral','Darby3K', 'Hooper2K', 'Kv_to_Cv', 'Cv_to_Kv', 'Kv_to_K', 'K_to_Kv', 'Cv_to_K', 'K_to_Cv', 'change_K_basis', 'Darby', 'Hooper', 'K_gate_valve_Crane', 'K_angle_valve_Crane', 'K_globe_valve_Crane', 'K_swing_check_valve_Crane', 'K_lift_check_valve_Crane', 'K_tilting_disk_check_valve_Crane', 'K_globe_stop_check_valve_Crane', 'K_angle_stop_check_valve_Crane', 'K_ball_valve_Crane', 'K_diaphragm_valve_Crane', 'K_foot_valve_Crane', 'K_butterfly_valve_Crane', 'K_plug_valve_Crane', 'K_branch_converging_Crane', 'K_run_converging_Crane', 'K_branch_diverging_Crane', 'K_run_diverging_Crane', 'v_lift_valve_Crane'];
 export function change_K_basis({K1, D1, D2}) {
     let r = D2/D1;
@@ -44,8 +45,9 @@ export function entrance_distance({Di, t=null, l=null, method='Rennels'}) {
     if( method === null ) {
         let method = 'Rennels';
     }
+    let t_Di, K;
     if( method === 'Rennels' ) {
-        let t_Di = t/Di;
+        t_Di = t/Di;
         if( t_Di > 0.05 ) {
             t_Di = 0.05;
         }
@@ -60,15 +62,15 @@ export function entrance_distance({Di, t=null, l=null, method='Rennels'}) {
         if( l === null ) {
             let l = Di;
         }
-        t_Di = min(t/Di, 1.0);
-        let l_Di = min(l/Di, 10.0);
-        let K = float(entrance_distance_Idelchik_obj(l_Di, t_Di));
+        t_Di = Math.min(t/Di, 1.0);
+        let l_Di = Math.min(l/Di, 10.0);
+        K = float(entrance_distance_Idelchik_obj(l_Di, t_Di));
         if( K < 0.0 ) {
             K = 0.0;
         }
         return K;
     } else if( method === 'Harris' ) {
-        let ratio = min(t/Di, 0.289145); // max value for interpolation - extrapolation looks bad
+        let ratio = Math.min(t/Di, 0.289145); // max value for interpolation - extrapolation looks bad
         K = float(entrance_distance_Harris_obj(ratio));
         return K;
     } else if( method === 'Crane' ) {
@@ -204,9 +206,10 @@ export function Miller_bend_roughness_correction({Re, Di, roughness}) {
     // Section 9.2.4 - Roughness correction
     // Re limited to under 1E6 in friction factor falculations
     // Use a cached smooth fd value if Re too high
-    let Re_fd_min = min(1E6, Re);
+    let Re_fd_min = Math.min(1E6, Re);
+    let fd_smoth;
     if( Re_fd_min < 1E6 ) {
-        let fd_smoth = friction_factor( {Re: Re_fd_min, eD: 0.0 });
+        fd_smoth = friction_factor( {Re: Re_fd_min, eD: 0.0 });
     } else {
         fd_smoth = 0.011645040997991626;
     }
@@ -225,8 +228,9 @@ export function Miller_bend_unimpeded_correction({Kb, Di, L_unimpeded}) {
     * When between two Kb curves, interpolate linearly after evaluating both
       splines appropriately
     */
+    let Kb_C_o;
     if( Kb < 0.1 ) {
-        let Kb_C_o = 0.1;
+        Kb_C_o = 0.1;
     } else if( Kb > 1 ) {
         Kb_C_o = 1.0;
 } else {
@@ -237,10 +241,12 @@ export function Miller_bend_unimpeded_correction({Kb, Di, L_unimpeded}) {
         L_unimpeded_ratio = 30.0;
     }
     for( let i of range(len(bend_rounded_Miller_C_o_Kbs)) ) {
-        let [Kb_low, Kb_high] = [bend_rounded_Miller_C_o_Kbs[i], bend_rounded_Miller_C_o_Kbs[i+1]];
+        let Kb_low = bend_rounded_Miller_C_o_Kbs[i];
+        let Kb_high = bend_rounded_Miller_C_o_Kbs[i+1];
         if( Kb_low <= Kb_C_o <= Kb_high ) {
+            let Co_low;
             if( L_unimpeded_ratio >= bend_rounded_Miller_C_o_limits[i] ) {
-                let Co_low = 1.0;
+                Co_low = 1.0;
             } else if( L_unimpeded_ratio <= 0.01 ) {
                 Co_low = bend_rounded_Miller_C_o_limit_0_01[i];
 } else {
@@ -286,7 +292,7 @@ export function bend_rounded_Miller({Di, angle, Re, rc=null, bend_diameters=null
     /*Section 9.2.2 - Reynolds Number Correction
     Allow some extrapolation up to 1E8 (1E7 max in graph but the trend looks good)
     */
-    let Re_C_Re = min(max(Re, 1E4), 1E8);
+    let Re_C_Re = Math.min(Math.max(Re, 1E4), 1E8);
     if( radius_ratio >= 2.0 ) {
         if( Re_C_Re === 1E8 ) {
             let C_Re = 0.4196741237602154; // bend_rounded_Miller_C_Re(1e8, 2.0)
@@ -451,7 +457,7 @@ export function bend_miter_Miller({Di, angle, Re, roughness=0.0, L_unimpeded=nul
     let C_o =  Miller_bend_unimpeded_correction( {Kb: Kb, Di: Di, L_unimpeded: L_unimpeded });
     let C_roughness = Miller_bend_roughness_correction( {Re: Re, Di: Di,
                                                    roughness: roughness });
-    let Re_C_Re = min(max(Re, 1E4), 1E8);
+    let Re_C_Re = Math.min(Math.max(Re, 1E4), 1E8);
     let C_Re_1 = Re_C_Re < 207956.58904584477 ? bend_rounded_Miller_C_Re(Re_C_Re, 1.0) : 1.0;
     let C_Re = Kb/(Kb - 0.2*C_Re_1 + 0.2);
     if( C_Re > 2.2 || C_Re < 0 ) {
@@ -604,7 +610,7 @@ export let contraction_conical_Ks_Blevins = [[.08, .06, .04, .03, .03], [.17, .1
 export let contraction_conical_Blevins_tck = tck_interp2d_linear(contraction_conical_l_ratios_Blevins, contraction_conical_A_ratios_Blevins, contraction_conical_Ks_Blevins,   1, 1);
 export let contraction_conical_Blevins_obj = (x, y) => float(bisplev(x, y, contraction_conical_Blevins_tck));
 export let contraction_conical_Miller_tck = implementation_optimize_tck([[-2.2990613088204293, -2.2990613088204293, -2.2990613088204293, -2.2990613088204293, -1.9345621970869704,-1.404550366067981, -1.1205580332553446, -0.7202074014540876, -0.18305354619604816, 0.5791478950190209,1.2576636025381396, 2.2907351590368092, 2.2907351590368092, 2.2907351590368092, 2.2907351590368092],[0.09564194294666524, 0.09564194294666524, 0.17553288711543455, 0.263895293813645, 0.3890819147022019,0.46277323951998217, 0.5504296236707121, 0.7265657737596892, 1.0772357648098938, 1.2566022106161683,1.3896885941879062, 1.3896885941879062],[-0.019518693251672135, 0.04439613867473242, 0.11549650174721836, 0.21325506677861075, 0.268179723158688,0.31125301421509866, 0.38394595875289805, 0.4808287074532006, 0.5205981039085685, 0.5444079315893322,-0.016435668699253902, 0.036132755789022385, 0.09344296094392814, 0.18264727448046977, 0.23460506265914166,0.2772896726095435, 0.3475409775384636, 0.45339837219176454, 0.49766916609817535, 0.533981552804865,-0.006524265764454468, 0.024107195694715193, 0.05862956870028131, 0.12122104285943507, 0.17207312024278762,0.2175356288866053, 0.282297563080016, 0.3995008583081823, 0.4563724107887528, 0.5175856070810377,0.00971345082784277, 0.025981390544674948, 0.0438578322196561, 0.08103403101086341, 0.11351528283253318,0.16873088559958743, 0.2347695003589526, 0.3428907161435351, 0.42017998591926276, 0.49784770602295325,0.022572122504756167, 0.0277671279384801, 0.033512283408629495, 0.05470423531298454, 0.06485563480390757,0.10483763206962131, 0.1802208799223503, 0.29075723837012296, 0.35502824385155335, 0.4460106883062252,0.030312717163327077, 0.03080869253188484, 0.03583128286874324, 0.04627567520803308, 0.050501484562613955,0.05683263025468022, 0.12297253802915259, 0.2415222338797251, 0.3025777968736861, 0.3724407040165538,0.03115993727503623, 0.03443665864698284, 0.03574452046031886, 0.03995718256281492, 0.04759698369059247,0.050404788737262694, 0.052375330859925545, 0.1356057568743366, 0.20463667731329582, 0.26043914743762864,0.02844193432840707, 0.0219797618956514, 0.013352154001094038, 0.018393840217638825, 0.02448602185526976,0.038812331325140816, 0.0522197430071833, 0.057132169238281294, 0.06871138075102912, 0.09334527259294226,0.04089985439478869, 0.07148502476706058, 0.06750266344761692, 0.038560772865945815, 0.020172054809734774,0.01596047961326318, 0.033338955878272625, 0.058808731166289874, 0.055802602927507314, 0.025265841939291166,0.11200365568168691, 0.11945663812857424, 0.10673570013847415, 0.07758458179796549, 0.055266607234870514,0.03072901347153607, 0.025790727504652375, 0.037031664564632104, 0.0601306808668177, 0.07612350738135039,0.0964900248905913, 0.11088549072803407, 0.10778442024110846, 0.09386482850507959, 0.06940476627270852,0.04434507143623664, 0.03331958878624311, 0.01854072032522763, 0.027553821071285824, 0.045426686375783926],3, 1]);
-export let contraction_conical_Miller_obj = (l_r2, A_ratio) => max(min(float(bisplev(Math.log(l_r2), Math.log(A_ratio), contraction_conical_Miller_tck)), .5), 0);
+export let contraction_conical_Miller_obj = (l_r2, A_ratio) => Math.max(Math.min(float(bisplev(Math.log(l_r2), Math.log(A_ratio), contraction_conical_Miller_tck)), .5), 0);
 export let contraction_conical_methods = ['Rennels', 'Idelchik', 'Crane', 'Swamee', 'Blevins', 'Miller', 'Hooper'];
 export let contraction_conical_method_unknown = 'Specified method not recognized; methods are %s' %(contraction_conical_methods);
 export function contraction_conical({Di1, Di2, fd=null, l=null, angle=null,
@@ -836,7 +842,7 @@ export function diffuser_conical({Di1, Di2, l=null, angle=null, fd=null, Re=null
         } else if( l_R1_ratio > 20.0 ) {
             l_R1_ratio = 20.0;
     }
-        let Kd = max(float(bisplev(Math.log(l_R1_ratio), Math.log(A_ratio), tck_diffuser_conical_Miller)), 0);
+        let Kd = Math.max(float(bisplev(Math.log(l_R1_ratio), Math.log(A_ratio), tck_diffuser_conical_Miller)), 0);
         return Kd;
     } else if( method === 'Idelchik' ) {
         A_ratio = beta2;
@@ -855,7 +861,7 @@ export function diffuser_conical({Di1, Di2, l=null, angle=null, fd=null, Re=null
             A_ratio_fric = 0.6;
     }
         let K_fr = float(contraction_conical_frction_Idelchik_obj(angle_fric, A_ratio_fric));
-        let K_exp = float(diffuser_conical_Idelchik_obj(min(0.6, A_ratio), max(3.0, angle_deg)));
+        let K_exp = float(diffuser_conical_Idelchik_obj(min(0.6, A_ratio), Math.max(3.0, angle_deg)));
         return K_fr + K_exp;
     } else if( method === 'Swamee' ) {
         // Really starting to thing Swamee uses a different definition of loss coefficient!

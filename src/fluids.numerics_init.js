@@ -477,7 +477,7 @@ export function derivative({func, x0, dx=1.0, n=1, args=[], order=3, scalar=true
             x0 += (x0 - min_x);
         }
         let tot = 0.0;
-        for( let k of range(order) ) {
+        for( let k; k<order; k++ ) {
             if( weights[k] !== 0.0 ) {
                 // tot += weights[k]*func(x0 + (k - ho)*dx, args, ...kwargs);
                 tot += weights[k]*func(x0 + (k - ho)*dx);
@@ -486,14 +486,14 @@ export function derivative({func, x0, dx=1.0, n=1, args=[], order=3, scalar=true
         return tot*denominator;
     } else {
         let numerators = null;
-        for( let k of range(order) ) {
+        for( let k; k<order; k++ ) {
             // let f = func(x0 + (k - ho)*dx, args, ...kwargs);
             let f = func(x0 + (k - ho)*dx);
             if( numerators === null ) {
                 let N = f.length;
                 numerators = mkArray(0.0, N);
             }
-            for( let i of range(N) ) {
+            for( let i; i<N; i++ ) {
                 numerators[i] += weights[k]*f[i];
             }
         }
@@ -572,7 +572,7 @@ export function jacobian(f, x0, scalar=true, perturbation=1e-9, zero_offset=1e-7
     let x = list(x0);
     let nx = x0.length;
     let gradient = [];
-    for( let i of range(nx) ) {
+    for( let i; i<nx; i++ ) {
         let delta = x0[i]*(perturbation);
         if( delta === 0 ) {
             delta = zero_offset;
@@ -610,7 +610,7 @@ export function hessian(f, x0, scalar=true, perturbation=1e-9, zero_offset=1e-7,
         ny = 1;
     }
     let deltas = [];
-    for( let i of range(nx) ) {
+    for( let i; i<nx; i++ ) {
         let delta = x0[i]*(perturbation);
         if( delta === 0.0 ) {
             delta = zero_offset;
@@ -620,7 +620,7 @@ export function hessian(f, x0, scalar=true, perturbation=1e-9, zero_offset=1e-7,
     let deltas_inv = deltas.map( di =>1.0/di );
     let x_perturb = list(x0);
     let fs_perturb_i = [];
-    for( let i of range(nx) ) {
+    for( let i; i<nx; i++ ) {
         x_perturb[i] += deltas[i];
         // let f_perturb_i = f(x_perturb, args, ...kwargs);
         let f_perturb_i = f(x_perturb);
@@ -632,7 +632,7 @@ export function hessian(f, x0, scalar=true, perturbation=1e-9, zero_offset=1e-7,
     } else {
         hessian = [];
     }
-    for( let i of range(nx) ) {
+    for( let i; i<nx; i++ ) {
         if( !full ) {
             let row = [];
         }
@@ -1163,12 +1163,12 @@ export function min_max_ratios(actual, calculated) {
 export function std(data) {
     let tot = 0.0;
     let N = data.length;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         tot += data[i];
     }
     let mean = tot/N;
     tot = 0.0;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let v = (data[i] - mean);
         tot += v*v;
     }
@@ -1183,7 +1183,7 @@ export function polyder(c, m=1, scl=1, axis=0) {
     if( cnt >= n ) {
         c = c.slice( 0,1 )*0;
     } else {
-        for( let i of range(cnt) ) { // normally only happens once
+        for( let i; i<cnt; i++ ) { // normally only happens once
             n = n - 1;
             let der = mkArray(0.0, n);
             for( let j of range(n, 0, -1) ) {
@@ -1197,7 +1197,7 @@ export function polyder(c, m=1, scl=1, axis=0) {
 export function polyint(coeffs) {
     let N = coeffs.length;
     let out = mkArray(0,0, N+1);
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         out[i] = coeffs[i]/(N-i);
     }
     return out;
@@ -1207,7 +1207,7 @@ export function polyint_over_x(coeffs) {
     let log_coef = coeffs[coeffs.length-1];
     let Nm1 = N - 1;
     let poly_terms = mkArray(0.0, N);
-    for( let i of range(Nm1) ) {
+    for( let i; i<Nm1; i++ ) {
         poly_terms[i] = coeffs[i]/(Nm1-i);
     }
     return [poly_terms, log_coef];
@@ -1419,7 +1419,7 @@ export function chebder(c, m=1, scl=1.0) {
     if( cnt >= n ) {
         c = [];
     } else {
-        for( let i of range(cnt) ) {
+        for( let i; i<cnt; i++ ) {
             n = n - 1;
             if( scl !== 1.0 ) {
                 for( let j of range(c.length) ) {
@@ -1451,13 +1451,13 @@ export function chebint(c, m=1, lbnd=0, scl=1) {
     }
     let n = c.length;
     let c2 = mkArray(0.0, n); // Make a copy of c
-    for( let i of range(n) ) {
+    for( let i; i<n; i++ ) {
         c2[i] = c[i];
     }
     c = c2;
-    for( let i of range(cnt) ) {
+    for( let i; i<cnt; i++ ) {
         n = c.length;
-        for( let o of range(n) ) {
+        for( let o; o<n; o++ ) {
             c[o] *= scl;
         }
         if( n === 1 && c[0] === 0 ) {
@@ -1551,7 +1551,7 @@ export function assert_close1d(a, b, rtol=1e-7, atol=0.0) {
     if( N !== b.length ) {
         throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) );
     }
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         assert_close(a[i], b[i], { rtol: rtol, atol: atol });
     }
 }
@@ -1570,11 +1570,11 @@ export function assert_close2d(a, b, rtol=1e-7, atol=0.0) {
         const { assert_allclose } = require( './numpy.testing' );
         return assert_allclose(a, b, { rtol: rtol, atol: atol });
     }
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let [a0, b0] = [a[i], b[i]];
         let N0 = a0.length;
         if( N0 !== b0.length ) { throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N0, b0.length] ) ); }
-        for( let j of range(N0) ) {
+        for( let j; j<N0; j++ ) {
            // assert_close(a0[j], b0[j], rtol=rtol, atol=atol)
             let good = true;
             let [a1, b1] = [a0[j], b0[j]];
@@ -1602,16 +1602,16 @@ export function assert_close2d(a, b, rtol=1e-7, atol=0.0) {
 export function assert_close3d(a, b, rtol=1e-7, atol=0.0) {
     let N = a.length;
     if( N !== b.length ) { throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) ); }
-    for( let i of range(N) ) { assert_close2d(a[i], b[i], { rtol: rtol, atol: atol }); }
+    for( let i; i<N; i++ ) { assert_close2d(a[i], b[i], { rtol: rtol, atol: atol }); }
 }
 export function assert_close4d(a, b, rtol=1e-7, atol=0.0) {
     let N = a.length;
     if( N !== b.length ) { throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) ); }
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let [a0, b0] = [a[i], b[i]];
         let N0 = a0.length;
         if( N0 !== b0.length ) { throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N0, b0.length] ) ); }
-        for( let j of range(N0) ) { assert_close2d(a0[j], b0[j], { rtol: rtol, atol: atol }); }
+        for( let j; j<N0; j++ ) { assert_close2d(a0[j], b0[j], { rtol: rtol, atol: atol }); }
     }
 }
 export function interp(x, dx, dy, left=null, right=null, extrapolate=false) {
@@ -1735,13 +1735,13 @@ export function translate_bound_jac(jac, bounds=null, low=null, high=null) {
     function new_j(x) {
         let x_base = x.map( i =>float(i) );
         let N = x.length;
-        for( let i of range(N) ) {
+        for( let i; i<N; i++ ) {
             x_base[i] = (low[i] + (high[i] - low[i])/(1.0 + Math.exp(-x[i])));
         }
         let jac_base = jac(x_base);
         try {
             let jac_base = jac_base;
-            for( let i of range(N) ) {
+            for( let i; i<N; i++ ) {
                 let v = (high[i] - low[i])*Math.exp(-x[i])*jac_base[i];
                 v *= (1.0 + Math.exp(-x[i]))**-2;
                 jac_base[i] = v;
@@ -1776,7 +1776,7 @@ export function translate_bound_f_jac(f, jac, bounds=null, low=null, high=null, 
     function new_f_j(x, ...args) {
         let x_base = x;
         let N = x.length;
-        for( let i of range(N) ) {
+        for( let i; i<N; i++ ) {
             exp_terms[i] = ei = trunc_exp(-x[i]);
             x_base[i] = (low[i] + (high[i] - low[i])/(1.0 + ei));
         }
@@ -1802,7 +1802,7 @@ export function translate_bound_f_jac(f, jac, bounds=null, low=null, high=null, 
                 if( !inplace_jac ) {
                     jac_base = jac_base;
                 }
-                for( let i of range(N) ) {
+                for( let i; i<N; i++ ) {
                     let t = (1.0 + exp_terms[i]);
                     jac_base[i] = (high[i] - low[i])*exp_terms[i]*jac_base[i]/(t*t);
                 }
@@ -2052,7 +2052,7 @@ export function bisect(f, a, b, args=[], xtol=1e-12, rtol=2.220446049250313e-16,
     }
     let dm = b - a;
     //    iterations = 0.0
-    for( let i of range(maxiter) ) {
+    for( let i; i<maxiter; i++ ) {
         dm *= 0.5;
         let xm = a + dm;
         let fm = f(xm, ...args);
@@ -2091,7 +2091,7 @@ export function ridder(f, a, b, args=[], xtol=_xtol, rtol=_rtol, maxiter=_iter,
     else if( fb === 0.0 ) {
         return b;
     }
-    for( let i of range(maxiter) ) {
+    for( let i; i<maxiter; i++ ) {
         let dm = 0.5*(b - a);
         let xm = a + dm;
         let fm = f(xm, ...args);
@@ -2151,7 +2151,7 @@ export function brenth({f, xa, xb, args=[],
     else if( fcur === 0.0 ) {
         return xb;
     }
-    for( let i of range(maxiter) ) {
+    for( let i; i<maxiter; i++ ) {
         if( fpre*fcur < 0.0 ) {
             xblk = xpre;
             fblk = fpre;
@@ -2278,7 +2278,7 @@ export function secant({func, x0, args=[], maxiter=100, low=null, high=null, dam
             b = p0;
         }
     }
-    for( let i of range(maxiter) ) {
+    for( let i; i<maxiter; i++ ) {
         // Calculate new point, and truncate if necessary
         let p;
         if( q1 !== q0 ) {
@@ -2390,7 +2390,7 @@ export function newton({func, x0, fprime=null, args=[], tol=null, maxiter=100,
         let func2 = func;
     }
     let [hit_low, hit_high] = [0, 0];
-    for( let it of range(maxiter) ) {
+    for( let it; it<maxiter; it++ ) {
         if( fprime2_included ) { // numba: DELETE
             // let [fval, fder, fder2] = func2(p0, args, ...kwargs); // numba: DELETE
             let [fval, fder, fder2] = func2(p0); // numba: DELETE
@@ -2522,7 +2522,7 @@ export function halley({func, x0, args=[], maxiter=100, low=null, high=null, dam
         let [fa, fb] = [null, null];
     }
     let [hit_low, hit_high] = [0, 0];
-    for( let it of range(maxiter) ) {
+    for( let it; it<maxiter; it++ ) {
         let [fval, fder, fder2] = func(p0, ...args);
         if( fval === 0.0 ) {
             return p0; // Cannot continue or already finished
@@ -2623,7 +2623,7 @@ export function newton_err(F) {
 export function basic_damping(x, dx, damping, ...args) {
     let N = x.length;
     let x2 = mkArray(0.0, N);
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         x2[i] = x[i] + dx[i]*damping;
     }
     return x2;
@@ -2986,7 +2986,7 @@ export function fpbspl(t, n, k, x, l, h, hh) {
     for( let j of range(1, k + 1) ) {
         hh.splice(0,j,...h.slice(0,j));
         h[0] = 0.0;
-        for( let i of range(j) ) {
+        for( let i; i<j; i++ ) {
             let li = l+i;
             let f = hh[i]/(t[li] - t[li - j]);
             h[i] = h[i] + f*(t[li] - x);
@@ -3003,7 +3003,7 @@ export function init_w(t, k, x, lx, w) {
     let te = t[n - k - 1];
     let l1 = k + 1;
     let l2 = l1 + 1;
-    for( let i of range(m) ) {
+    for( let i; i<m; i++ ) {
         let arg = x[i];
         if( arg < tb ) {
             arg = tb;
@@ -3040,12 +3040,12 @@ export function cy_bispev(tx, ty, c, kx, ky, x, y) {
     let z = mkArray(0.0, size_z);
     init_w(tx, kx, x, lx, wx);
     init_w(ty, ky, y, ly, wy);
-    for( let j of range(my) ) {
-        for( let i of range(mx) ) {
+    for( let j; j<my; j++ ) {
+        for( let i; i<mx; i++ ) {
             let sp = 0.0;
             let err = 0.0;
-            for( let i1 of range(kx1) ) {
-                for( let j1 of range(ky1) ) {
+            for( let i1; i1<kx1; i1++ ) {
+                for( let j1; j1<ky1; j1++ ) {
                     let l2 = lx[i]*nky1 + ly[j] + i1*nky1 + j1;
                     let a = c[l2]*wx[i][i1]*wy[j][j1] - err;
                     let tmp = sp + a;
@@ -3087,7 +3087,7 @@ export function polylog2(x) {
 export function max_abs_error(data, calc) {
     let max_err = 0.0;
     let N = data.length;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let diff = Math.abs(data[i] - calc[i]);
         if( diff > max_err ) {
             max_err = diff;
@@ -3098,7 +3098,7 @@ export function max_abs_error(data, calc) {
 export function max_abs_rel_error(data, calc) {
     let max_err = 0.0;
     let N = data.length;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let diff = Math.abs((data[i] - calc[i])/data[i]);
         if( diff > max_err ) {
             max_err = diff;
@@ -3109,7 +3109,7 @@ export function max_abs_rel_error(data, calc) {
 export function max_squared_error(data, calc) {
     let max_err = 0.0;
     let N = data.length;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let diff = Math.abs(data[i] - calc[i]);
         diff *= diff;
         if( diff > max_err ) {
@@ -3121,7 +3121,7 @@ export function max_squared_error(data, calc) {
 export function max_squared_rel_error(data, calc) {
     let max_err = 0.0;
     let N = data.length;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let diff = Math.abs((data[i] - calc[i])/data[i]);
         diff *= diff;
         if( diff > max_err ) {
@@ -3133,7 +3133,7 @@ export function max_squared_rel_error(data, calc) {
 export function mean_abs_error(data, calc) {
     let mean_err = 0.0;
     let N = data.length;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         mean_err += Math.abs(data[i] - calc[i]);
     }
     return mean_err/N;
@@ -3141,7 +3141,7 @@ export function mean_abs_error(data, calc) {
 export function mean_abs_rel_error(data, calc) {
     let mean_err = 0.0;
     let N = data.length;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         if( data[i] === 0.0 ) {
             if( calc[i] === 0.0 ) {
                 /* pass */
@@ -3157,7 +3157,7 @@ export function mean_abs_rel_error(data, calc) {
 export function mean_squared_error(data, calc) {
     let mean_err = 0.0;
     let N = data.length;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let err = Math.abs(data[i] - calc[i]);
         mean_err += err*err;
     }
@@ -3166,7 +3166,7 @@ export function mean_squared_error(data, calc) {
 export function mean_squared_rel_error(data, calc) {
     let mean_err = 0.0;
     let N = data.length;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let err = Math.abs((data[i] - calc[i])/data[i]);
         mean_err += err*err;
     }
@@ -3242,7 +3242,7 @@ export function fixed_quad_Gauss_Kronrod(f, a, b, k_points, k_weights, l_weights
     //fx_gk = mkArray(0.0, N)
     //fx_gl = mkArray(0.0, center)
     let k = 0;
-    for( let i of range(N) ) {
+    for( let i; i<N; i++ ) {
         let x0 = 0.5*(1.0 - k_points[i]);
         let x1 = 0.5*(1.0 + k_points[i]);
         //sp[i] =

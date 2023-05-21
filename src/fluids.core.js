@@ -1,3 +1,4 @@
+import { float, listZip } from './_pyjs.js';
 // if (typeof g == 'undefined') {
 import { g as g_const, R } from './fluids.constants.js' ;
 // }
@@ -5,39 +6,39 @@ let __all__ = ['Reynolds', 'Prandtl', 'Grashof', 'Nusselt', 'Sherwood', 'Rayleig
 export function thermal_diffusivity({k, rho, Cp}) { return k/(rho*Cp); }
 ////// Ideal gas fluid properties
 export function c_ideal_gas({T, k, MW}) {
-    let Rspecific = R*1000./MW;
+    let Rspecific = R*1000/MW;
     return Math.sqrt(k*Rspecific*T);
 }
 ////// Dimensionless groups
 export function Reynolds({V, D, rho=null, mu=null, nu=null}) {
     if( rho !== null && mu !== null ) { nu = mu/rho; }
-    else if( nu === null ) { throw new Error( 'ValueError','Either density and viscosity, or dynamic viscosity,  is needed' ); };
+    else if( nu === null ) { throw new Error( 'ValueError','Either density and viscosity, or dynamic viscosity,  is needed' ) };
     return V*D/nu;
 }
 export function Peclet_heat({V, L, rho=null, Cp=null, k=null, alpha=null}) {
     if( rho !== null && Cp !== null && k !== null ) { alpha =  k/(rho*Cp); }
-    else if( alpha === null ) { throw new Error( 'ValueError','Either heat capacity and thermal conductivity and density, or thermal diffusivity is needed' ); };
+    else if( alpha === null ) { throw new Error( 'ValueError','Either heat capacity and thermal conductivity and density, or thermal diffusivity is needed' ) };
     return V*L/alpha;
 }
 export function Peclet_mass({V, L, D}) { return V*L/D; }
 export function Fourier_heat({t, L, rho=null, Cp=null, k=null, alpha=null}) {
     if( rho !== null && Cp !== null && k !== null ) { alpha =  k/(rho*Cp); }
-    else if( alpha === null ) { throw new Error( 'ValueError','Either heat capacity and thermal conductivity and density, or thermal diffusivity is needed' ); };
+    else if( alpha === null ) { throw new Error( 'ValueError','Either heat capacity and thermal conductivity and density, or thermal diffusivity is needed' ) };
     return t*alpha/(L*L);
 }
 export function Fourier_mass({t, L, D}) { return t*D/(L*L); }
 export function Graetz_heat({V, D, x, rho=null, Cp=null, k=null, alpha=null}) {
     if( rho !== null && Cp !== null && k !== null ) { alpha = k/(rho*Cp); }
-    else if( alpha === null ) { throw new Error( 'ValueError','Either heat capacity and thermal conductivity and density, or thermal diffusivity is needed' ); };
+    else if( alpha === null ) { throw new Error( 'ValueError','Either heat capacity and thermal conductivity and density, or thermal diffusivity is needed' ) };
     return V*D*D/(x*alpha);
 }
 export function Schmidt({D, mu=null, nu=null, rho=null}) {
     if( rho !== null && mu !== null ) { return mu/(rho*D); }
-    else if( nu !== null ) { return nu/D; } else { throw new Error( 'ValueError','Insufficient information provided for Schmidt number calculation' ); };
+    else if( nu !== null ) { return nu/D; } else { throw new Error( 'ValueError','Insufficient information provided for Schmidt number calculation' ) };
 }
 export function Lewis({D=null, alpha=null, Cp=null, k=null, rho=null}) {
     if( k !== null && Cp !== null && rho !== null ) { alpha = k/(rho*Cp); }
-    else if( alpha === null ) { throw new Error( 'ValueError','Insufficient information provided for Le calculation' ); };
+    else if( alpha === null ) { throw new Error( 'ValueError','Insufficient information provided for Le calculation' ) };
     return alpha/D;
 }
 export function Weber({V, L, rho, sigma}) { return V*V*L*rho/sigma; }
@@ -50,11 +51,11 @@ export function Morton({rhol, rhog, mul, sigma, g=g_const}) {
 export function Knudsen({path, L}) { return path/L; }
 export function Prandtl({Cp=null, k=null, mu=null, nu=null, rho=null, alpha=null}) {
     if( k !== null && Cp !== null && mu !== null ) { return Cp*mu/k; }
-    else if( nu !== null && rho !== null && Cp !== null && k !== null ) { return nu*rho*Cp/k; } else if( nu !== null && alpha !== null ) { return nu/alpha; } else { throw new Error( 'ValueError','Insufficient information provided for Pr calculation' ); };
+    else if( nu !== null && rho !== null && Cp !== null && k !== null ) { return nu*rho*Cp/k; } else if( nu !== null && alpha !== null ) { return nu/alpha; } else { throw new Error( 'ValueError','Insufficient information provided for Pr calculation' ) };
 }
 export function Grashof({L, beta, T1, T2=0, rho=null, mu=null, nu=null, g=g_const}) {
     if( rho !== null && mu !== null ) { nu = mu/rho; }
-    else if( nu === null ) { throw new Error( 'ValueError','Either density and viscosity, or dynamic viscosity,  is needed' ); };
+    else if( nu === null ) { throw new Error( 'ValueError','Either density and viscosity, or dynamic viscosity,  is needed' ) };
     return g*beta*Math.abs(T2-T1)*L*L*L/(nu*nu);
 }
 export function Bond({rhol, rhog, sigma, L}) { return (g_const*(rhol-rhog)*L*L/sigma); }
@@ -164,8 +165,8 @@ export function Engauge_2d_parser({lines, flat=false}) {
         let all_zs = [];
         let all_xs = [];
         let all_ys = [];
-        for( let [ z, xs, ys ] of _pyjs.listZip(z_values, x_lists, y_lists) ) {
-            for( let [ x, y ] of _pyjs.listZip(xs, ys) ) {
+        for( let [ z, xs, ys ] of listZip(z_values, x_lists, y_lists) ) {
+            for( let [ x, y ] of listZip(xs, ys) ) {
                 all_zs.push(z);
                 all_xs.push(x);
                 all_ys.push(y);

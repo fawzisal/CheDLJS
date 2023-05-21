@@ -407,7 +407,7 @@ diff = differentiate;
     differentiate( n=1) {
         let ak = this.coefficients();
         let a_, b_ = this.domain();
-        for( let _ of range(n) ) {
+        for( let _; _<n; _++ ) {
             ak = this.differentiator(ak);
         }
         return this.from_coeff((2./(b_-a_))**n*ak, { domain: this.domain() });

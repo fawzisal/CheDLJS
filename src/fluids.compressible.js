@@ -1,11 +1,12 @@
 import { R } from './fluids.constants.js' ;
-import { secant, newton, ridder, lambertw } from './fluids.numerics_init.js' ;
+import { secant,    ridder, lambertw } from './fluids.numerics_init.js' ;
+import { stringInterpolate } from './_pyjs.js';
 
 let __all__ = ['Panhandle_A', 'Panhandle_B', 'Weymouth', 'Spitzglass_high', 'Spitzglass_low', 'Oliphant', 'Fritzsche', 'Muller', 'IGT', 'isothermal_gas', 'isothermal_work_compression', 'polytropic_exponent', 'isentropic_work_compression', 'isentropic_efficiency', 'isentropic_T_rise_compression', 'T_critical_flow', 'P_critical_flow', 'P_isothermal_critical_flow', 'is_critical_flow', 'stagnation_energy', 'P_stagnation', 'T_stagnation', 'T_stagnation_ideal'];
+
 export function isothermal_work_compression({P1, P2, T, Z=1.0}) {
     return Z*R*T*Math.log(P2/P1);
 }
-
 
 export function isentropic_work_compression({T1, k, Z=1.0, P1=null, P2=null, W=null, eta=null}) {
     if( W === null && eta !== null && P1 !== null && P2 !== null ) {
@@ -112,7 +113,7 @@ export function isothermal_gas_err_P2({P2, rho, fd, P1, L, D, m}) {
 }
 
 export function isothermal_gas_err_P2_basis({P1, P2, rho, fd, m, L, D}) {
-    return abs(P2 - isothermal_gas({rho: rho, fd:fd, m: m, P1: P1, P2: null, L: L, D: D }));
+    return Math.abs(P2 - isothermal_gas({rho: rho, fd:fd, m: m, P1: P1, P2: null, L: L, D: D }));
 }
 
 export function isothermal_gas_err_D({D, m, rho, fd, P1, P2, L}) {
@@ -120,11 +121,11 @@ export function isothermal_gas_err_D({D, m, rho, fd, P1, P2, L}) {
 }
 
 export function isothermal_gas({rho, fd, P1=null, P2=null, L=null, D=null, m=null}) {
-    let Pcf;
+    let Pcf, m_max;
     if( m === null && P1 !== null && P2 !== null && L !== null && D !== null ) {
         Pcf = P_isothermal_critical_flow( {P: P1, fd: fd, D: D, L: L });
         if( P2 < Pcf ) {
-            throw new Error( 'ValueError',_pyjs.stringInterpolate( 'Given outlet pressure is not physically possible due to the formation of choked flow at P2=%f, specified outlet pressure was %f', [Pcf, P2] ) ); // numba: delete
+            throw new Error( 'ValueError',stringInterpolate( 'Given outlet pressure is not physically possible due to the formation of choked flow at P2=%f, specified outlet pressure was %f', [Pcf, P2] ) ); // numba: delete
         }
         if( P2 > P1 ) {
             throw new Error( 'ValueError - Specified outlet pressure is larger than the inlet pressure; fluid will flow backwards.' );
@@ -147,8 +148,8 @@ export function isothermal_gas({rho, fd, P1=null, P2=null, L=null, D=null, m=nul
             try {
                 return ridder(isothermal_gas_err_P1, { a: P2, b: Pcf, args: [fd, rho, P2, L, D, m] });
             } catch( e ) {
-                let m_max = isothermal_gas(rho, fd, { P1: Pcf, P2: P2, L: L, D: D });  // numba: delete
-                throw new Error( 'ValueError',_pyjs.stringInterpolate( 'The desired mass flow rate of %f kg/s cannot be achieved with the specified downstream pressure; the maximum flowrate is %f kg/s at an upstream pressure of %f Pa',[m, m_max, Pcf] ) ); // numba: delete
+                m_max = isothermal_gas(rho, fd, { P1: Pcf, P2: P2, L: L, D: D });  // numba: delete
+                throw new Error( 'ValueError',stringInterpolate( 'The desired mass flow rate of %f kg/s cannot be achieved with the specified downstream pressure; the maximum flowrate is %f kg/s at an upstream pressure of %f Pa',[m, m_max, Pcf] ) ); // numba: delete
             }
             //raise ValueError("Failed") # numba: uncomment
         }
@@ -184,7 +185,7 @@ export function isothermal_gas({rho, fd, P1=null, P2=null, L=null, D=null, m=nul
                 return ridder(isothermal_gas_err_P2, { a: Pcf, b: P1, args: [rho, fd, P1, L, D, m] });
             } catch( e ) {
                 m_max = isothermal_gas(rho, fd, { P1: P1, P2: Pcf, L: L, D: D });
-                throw new Error( 'ValueError',_pyjs.stringInterpolate( 'The desired mass flow rate cannot be achieved with the specified upstream pressure of %f Pa; the maximum flowrate is %f kg/s at a downstream pressure of %f',[P1, m_max, Pcf] ) ); // numba: delete
+                throw new Error( 'ValueError',stringInterpolate( 'The desired mass flow rate cannot be achieved with the specified upstream pressure of %f Pa; the maximum flowrate is %f kg/s at a downstream pressure of %f',[P1, m_max, Pcf] ) ); // numba: delete
             }
                // raise ValueError("Failed") # numba: uncomment
             // A solver which respects its boundaries is required here.
@@ -206,7 +207,7 @@ export function Panhandle_A({SG, Tavg, L=null, D=null, P1=null, P2=null, Q=null,
     let c2 = 0.8539;
     let c3 = 0.5394;
     let c4 = 2.6182;
-    let c5 = 158.0205328706957220332831680508433862787; // 45965*10**(591/1250)/864
+    let c5 = 45965*10**(591/1250)/864 // 158.0205328706957220332831680508433862787
     if( Q === null && L !== null && D !== null && P1 !== null && P2 !== null ) {
         return c5*E*(Ts/Ps)**c1*((P1**2 - P2**2)/(L*SG**c2*Tavg*Zavg))**c3*D**c4;
     } else if( D === null && L !== null && Q !== null && P1 !== null && P2 !== null ) {
@@ -229,7 +230,7 @@ export function Panhandle_B({SG, Tavg, L=null, D=null, P1=null, P2=null, Q=null,
     let c2 = 0.961; // sg power
     let c3 = 0.51; // main power
     let c4 = 2.53; // diameter power
-    let c5 = 152.8811634298055458624385985866624419060; // 4175*10**(3/25)/36
+    let c5 = 4175*10**(3/25)/36 //152.8811634298055458624385985866624419060
     if( Q === null && L !== null && D !== null && P1 !== null && P2 !== null ) {
         return c5*E*(Ts/Ps)**c1*((P1**2 - P2**2)/(L*SG**c2*Tavg*Zavg))**c3*D**c4;
     } else if( D === null && L !== null && Q !== null && P1 !== null && P2 !== null ) {
@@ -250,7 +251,7 @@ export function Weymouth({SG, Tavg, L=null, D=null, P1=null, P2=null, Q=null, Ts
              Ps=101325., Zavg=1.0, E=0.92}) {
     let c3 = 0.5; // main power
     let c4 = 2.667; // diameter power
-    let c5 = 137.3295809942512546732179684618143090992; // 37435*10**(501/1000)/864
+    let c5 = 37435*10**(501/1000)/864 // 137.3295809942512546732179684618143090992
     if( Q === null && L !== null && D !== null && P1 !== null && P2 !== null ) {
         return c5*E*(Ts/Ps)*((P1**2 - P2**2)/(L*SG*Tavg*Zavg))**c3*D**c4;
     } else if( D === null && L !== null && Q !== null && P1 !== null && P2 !== null ) {
@@ -274,7 +275,7 @@ export function _to_solve_Spitzglass_high({D, Q, SG, Tavg, L, P1, P2, Ts, Ps, Za
 
 export function Spitzglass_high({SG, Tavg, L=null, D=null, P1=null, P2=null, Q=null, Ts=288.7,
                 Ps=101325., Zavg=1.0, E=1.}) {
-    let c3 = 1.181102362204724409448818897637795275591; // 0.03/inch or 150/127
+    let c3 = 150/127; //1.181102362204724409448818897637795275591 or 0.03/inch
     let c4 = 0.09144;
     let c5 = 125.1060;
     if( Q === null && L !== null && D !== null && P1 !== null && P2 !== null ) {
@@ -307,11 +308,11 @@ export function _to_solve_Spitzglass_low({D, Q, SG, Tavg, L, P1, P2, Ts, Ps, Zav
 
 export function Spitzglass_low({SG, Tavg, L=null, D=null, P1=null, P2=null, Q=null, Ts=288.7,
                 Ps=101325., Zavg=1.0, E=1.}) {
-    let c3 = 1.181102362204724409448818897637795275591; // 0.03/inch or 150/127
+    let c3 = 150/127; // 0.03/inch or 1.181102362204724409448818897637795275591
     let c4 = 0.09144;
     let c5 = 125.1060;
     if( Q === null && L !== null && D !== null && P1 !== null && P2 !== null ) {
-        return c5*Ts/Ps*D**2.5*E*Math.sqrt(((P1-P2)*2*(Ps+1210.))/(L*SG*Tavg*Zavg*(1 + c4/D + c3*D)));
+        return c5*Ts/Ps*D**2.5*E*Math.sqrt(((P1-P2)*2*(Ps+1210))/(L*SG*Tavg*Zavg*(1 + c4/D + c3*D)));
     } else if( D === null && L !== null && Q !== null && P1 !== null && P2 !== null ) {
         let _to_solve_Spitzglass_low_wrapper = function(D){ _to_solve_Spitzglass_low({D: D, Q: Q, SG: SG, Tavg: Tavg, L: L, P1: P1, P2: P2, Ts: Ts, Ps: Ps, Zavg: Zavg, E: E}) };
         return secant({func: _to_solve_Spitzglass_low_wrapper, x0: 0.5 });
@@ -334,7 +335,7 @@ export function Oliphant({SG, Tavg, L=null, D=null, P1=null, P2=null, Q=null, Ts
              Ps=101325., Zavg=1.0, E=0.92}) {
     // c1 = 42*24*Q*foot**3/day*(mile)**0.5*9/5.*(5/9.)**0.5*psi*(1/psi)*14.4/520.*0.6**0.5*520**0.5/inch**2.5
     let c1 = 84.587176139918568651410168968141078948974609375000;
-    let c2 = 0.2091519350460528670065940559652517549694; // 1/(30.*0.0254**0.5)
+    let c2 = 1/(30.*0.0254**0.5); // 0.2091519350460528670065940559652517549694
     if( Q === null && L !== null && D !== null && P1 !== null && P2 !== null ) {
         return c1*(D**2.5 + c2*D**3)*Ts/Ps*Math.sqrt((P1**2-P2**2)/(L*SG*Tavg));
     } else if( D === null && L !== null && Q !== null && P1 !== null && P2 !== null ) {
@@ -355,7 +356,7 @@ export function Oliphant({SG, Tavg, L=null, D=null, P1=null, P2=null, Q=null, Ts
 export function Fritzsche({SG, Tavg, L=null, D=null, P1=null, P2=null, Q=null, Ts=288.7,
               Ps=101325., Zavg=1.0, E=1.0}) {
     // Rational('2.827E-3')/(3600*24)*(1000)**Rational('2.69')*(1000)**Rational('0.538')*1000/(1000**2)**Rational('0.538')
-    let c5 = 93.50009798751128188757518688244137811221; // 14135*10**(57/125)/432
+    let c5 = 14135*10**(57/125)/432; // 93.50009798751128188757518688244137811221
     let c2 = 0.8587;
     let c3 = 0.538;
     let c4 = 2.69;
@@ -378,7 +379,7 @@ export function Fritzsche({SG, Tavg, L=null, D=null, P1=null, P2=null, Q=null, T
 export function Muller({SG, Tavg, mu, L=null, D=null, P1=null, P2=null, Q=null, Ts=288.7,
            Ps=101325., Zavg=1.0, E=1.0}) {
     // 1000*foot**3/hour*0.4937/inch**2.725*foot**0.575*(5/9.)**0.575*9/5.*(pound/foot)**0.15*psi*(1/psi**2)**0.575
-    let c5 = 15.77439908642077352939746374951659525108; // 5642991*196133**(17/20)*2**(3/5)*3**(11/40)*5**(7/40)/30645781250
+    let c5 = 5642991*196133**(17/20)*2**(3/5)*3**(11/40)*5**(7/40)/30645781250; // 15.77439908642077352939746374951659525108
     let c2 = 0.575; // main power
     let c3 = 2.725; // D power
     let c4 = 0.425; // SG power
@@ -402,7 +403,7 @@ export function Muller({SG, Tavg, mu, L=null, D=null, P1=null, P2=null, Q=null, 
 export function IGT({SG, Tavg, mu, L=null, D=null, P1=null, P2=null, Q=null, Ts=288.7,
         Ps=101325., Zavg=1.0, E=1.0}) {
     // 1000*foot**3/hour*0.6643/inch**(8/3.)*foot**(5/9.)*(5/9.)**(5/9.)*9/5.*(pound/foot)**(1/9.)*psi*(1/psi**2)**(5/9.)
-    let c5 = 24.62412451461407054875301709443930350550; // 1084707*196133**(8/9)*2**(1/9)*6**(1/3)/4377968750
+    let c5 = 1084707*196133**(8/9)*2**(1/9)*6**(1/3)/4377968750; // 24.62412451461407054875301709443930350550
     let c2 = 5/9.; // main power
     let c3 = 8/3.; // D power
     let c4 = 4/9.; // SG power

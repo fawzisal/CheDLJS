@@ -808,7 +808,7 @@ let Kumar_Ps = [[1.0, 0.589, 0.183], [1.0, 0.652, 0.206], [1.0, 0.631, 0.161], [
 export function friction_plate_Kumar({Re, chevron_angle}) {
     let beta_list_len = len(Kumar_beta_list);
 
-    for( let i of range(beta_list_len) ) {
+    for( let i; i<beta_list_len; i++ ) {
         if( chevron_angle <= Kumar_beta_list[i] ) {
             let [C2_options, p_options, Re_ranges] = [Kumar_C2s[i], Kumar_Ps[i], Kumar_fd_Res[i]];
             break;
@@ -818,7 +818,7 @@ export function friction_plate_Kumar({Re, chevron_angle}) {
     }
     let Re_len = len(Re_ranges);
 
-    for( let j of range(Re_len) ) {
+    for( let j; j<Re_len; j++ ) {
         if( Re <= Re_ranges[j] ) {
             let [C2, p] = [C2_options[j], p_options[j]];
             break;

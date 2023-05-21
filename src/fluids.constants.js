@@ -206,8 +206,8 @@ kgf = g, // * 1 kg
 kilogram_force = kgf,
 
 
-deg2rad = 0.017453292519943295769, // Multiple an angle in degrees by this to get radians
-rad2deg = 57.295779513082320877,// Multiple an angle in radians by this to get degrees
+deg2rad = Math.PI/180 // 0.017453292519943295769, // Multiple an angle in degrees by this to get radians
+rad2deg = 180/Math.PI // 57.295779513082320877,// Multiple an angle in radians by this to get degrees
 
 
 root_two = 1.4142135623730951;

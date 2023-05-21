@@ -161,10 +161,11 @@ export function time_v_terminal_Stokes({D, rhop, rho, mu, V0, tol=1e-14}) {
     let denominator = term + 18.*mu*V0;
     let v_term_base = g*D*D*(rhop-rho)/(18.*mu);
     let constant = D*D*rhop/mu*-1.0/18.;
-    for( let i of range(50) ) {
+    for( let i; i<50; i++ ) {
         try {
-            if( v_term_base < V0 ) { let v_term = v_term_base*(1.0 + tol); }
-            else { let v_term = v_term_base*(1.0 - tol); }
+            let v_term;
+            if( v_term_base < V0 ) { v_term = v_term_base*(1.0 + tol); }
+            else { v_term = v_term_base*(1.0 - tol); }
             let numerator = term + 18.*mu*v_term;
             return Math.log(numerator/denominator)*constant;
         } catch( e ) {

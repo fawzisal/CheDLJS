@@ -144,14 +144,14 @@ const { uniform, seed } = require( './random' );
         // Keep the pressure limits sane
         //if 'P1' in unknown_vars:
         //    if 'P5' not in unknown_vars:
-        //        vals['P1'] = max(vals['P1'], 1.001*vals['P5'])
+        //        vals['P1'] = Math.max(vals['P1'], 1.001*vals['P5'])
         //    elif 'P2' not in unknown_vars:
-        //        vals['P1'] = max(vals['P1'], 1.001*vals['P2'])
+        //        vals['P1'] = Math.max(vals['P1'], 1.001*vals['P2'])
         //if 'P2' in unknown_vars:
         //    if 'P1' not in unknown_vars:
-        //        vals['P2'] = min(vals['P2'], 0.999*vals['P1'])
+        //        vals['P2'] = Math.min(vals['P2'], 0.999*vals['P1'])
         //    if 'P5' not in unknown_vars:
-        //        vals['P2'] = max(vals['P2'], 1.001*vals['P2'])
+        //        vals['P2'] = Math.max(vals['P2'], 1.001*vals['P2'])
         // Prelimary numbers
         let A_nozzle = Math.PI/4*vals['d_nozzle']**2;
         let alpha = vals['d_mixing']**2/d_diffuser**2;
