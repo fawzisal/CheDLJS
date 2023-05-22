@@ -240,7 +240,7 @@ export function Miller_bend_unimpeded_correction({Kb, Di, L_unimpeded}) {
     if( L_unimpeded_ratio > 30 ) {
         L_unimpeded_ratio = 30.0;
     }
-    for( let i of range(len(bend_rounded_Miller_C_o_Kbs)) ) {
+    for( let i=0; i < bend_rounded_Miller_C_o_Kbs.length; i++ ) {
         let Kb_low = bend_rounded_Miller_C_o_Kbs[i];
         let Kb_high = bend_rounded_Miller_C_o_Kbs[i+1];
         if( Kb_low <= Kb_C_o <= Kb_high ) {
@@ -252,8 +252,9 @@ export function Miller_bend_unimpeded_correction({Kb, Di, L_unimpeded}) {
 } else {
                 Co_low = float(splev(L_unimpeded_ratio, tck_bend_rounded_Miller_C_os[i]));
             }
+            let Co_high;
             if( L_unimpeded_ratio >= bend_rounded_Miller_C_o_limits[i+1] ) {
-                let Co_high = 1.0;
+                Co_high = 1.0;
             } else if( L_unimpeded_ratio <= 0.01 ) {
                 Co_high = bend_rounded_Miller_C_o_limit_0_01[i+1];
 } else {
@@ -293,9 +294,10 @@ export function bend_rounded_Miller({Di, angle, Re, rc=null, bend_diameters=null
     Allow some extrapolation up to 1E8 (1E7 max in graph but the trend looks good)
     */
     let Re_C_Re = Math.min(Math.max(Re, 1E4), 1E8);
+    let C_Re;
     if( radius_ratio >= 2.0 ) {
         if( Re_C_Re === 1E8 ) {
-            let C_Re = 0.4196741237602154; // bend_rounded_Miller_C_Re(1e8, 2.0)
+            C_Re = 0.4196741237602154; // bend_rounded_Miller_C_Re(1e8, 2.0)
         } else if( Re_C_Re === 1E4 ) {
             C_Re = 2.1775876405173977; // bend_rounded_Miller_C_Re(1e4, 2.0)
 } else {
@@ -335,7 +337,7 @@ export let bend_rounded_Crane_fds = [20.0, 14.0, 12.0, 12.0, 14.0, 17.0, 24.0, 3
 export let bend_rounded_Crane_coeffs = [111.75011378177442, -331.89911345404107, -27.841951521656483, 1066.8916917931147, -857.8702190626232, -1151.4621655498092, 1775.2416673594603, 216.37911821941805, -1458.1661519377653, 447.169127650163, 515.361158769082, -322.58377486107577, -38.38349416327068, 71.12796602489138, -16.198233745350535, 19.377150177339015, 31.107110520349494];
 export function bend_rounded_Crane({Di, angle, rc=null, bend_diameters=null}) {
     if( (rc !== null && bend_diameters !== null) ) { // numba: delete
-        if( abs(Di*bend_diameters/rc - 1.0) > 1e-12 ) { // numba: delete
+        if( Math.abs(Di*bend_diameters/rc - 1.0) > 1e-12 ) { // numba: delete
             throw new Error( 'ValueError',"Cannot specify both `rc` and `bend_diameters`" ); // numba: delete
         }
     }
@@ -373,8 +375,9 @@ export function bend_rounded_Ito({Di, angle, Re, rc=null, bend_diameters=null,
     let radius_ratio = rc/Di;
     let angle_rad = radians(angle);
     let De2 = Re*(Di/rc)**2.0;
+    let alpha;
     if( rc > 50.0*Di ) {
-        let alpha = 1.0;
+        alpha = 1.0;
     } else {
         // Alpha is up to 6, as ratio gets higher, can go down to 1
         let alpha_45 = 1.0 + 5.13*(Di/rc)**1.47;
@@ -382,13 +385,14 @@ export function bend_rounded_Ito({Di, angle, Re, rc=null, bend_diameters=null,
         let alpha_180 = 1.0 + 5.06*(Di/rc)**4.52;
         alpha = interp(angle, _Ito_angles, [alpha_45, alpha_90, alpha_180]);
     }
+    let K;
     if( De2 <= 360.0 ) {
         let fc = friction_factor_curved( {Re: Re, Di: Di, Dc: 2.0*rc,
                                     roughness: roughness,
                                     Rec_method: 'Srinivasan',
                                     laminar_method: 'White',
                                     turbulent_method: 'Srinivasan turbulent' });
-        let K = 0.0175*alpha*fc*angle*rc/Di;
+        K = 0.0175*alpha*fc*angle*rc/Di;
     } else {
         K = 0.00431*alpha*angle*Re**-0.17*(rc/Di)**0.84;
     }
@@ -531,8 +535,9 @@ export function contraction_sharp({Di1, Di2, fd=null, Re=null, roughness=0.0,
         }
         let D1_D2 = Di1/Di2;
         let D1_D2_2 = D1_D2*D1_D2;
+        let K;
         if( Re <= 2500.0 ) {
-            let K = (1.2 + 160.0/Re)*(D1_D2_2*D1_D2_2 - 1.0);
+            K = (1.2 + 160.0/Re)*(D1_D2_2*D1_D2_2 - 1.0);
         } else {
             if( fd === null ) {
                 let fd = Clamond( {Re: Re, eD: roughness/Di1 });
@@ -572,9 +577,10 @@ export function contraction_round({Di1, Di2, rc, method='Rennels'}) {
     }
 }
 export function contraction_conical_Crane({Di1, Di2, l=null, angle=null}) {
+    let angle_rad;
     if( l !== null ) {
         if( l === 0.0 ) {
-            let angle_rad = Math.PI;
+            angle_rad = Math.PI;
         } else {
             angle_rad = 2.0*Math.atan((Di1-Di2)/(2.0*l));
         }
@@ -586,9 +592,10 @@ export function contraction_conical_Crane({Di1, Di2, l=null, angle=null}) {
     }
     let beta = Di2/Di1;
     let beta2 = beta*beta;
+    let K2;
     if( angle_rad < 0.25*Math.PI ) {
         // Formula 1
-        let K2 = 0.8*Math.sin(0.5*angle_rad)*(1.0 - beta2);
+        K2 = 0.8*Math.sin(0.5*angle_rad)*(1.0 - beta2);
     } else {
         // Formula 2
         K2 = 0.5*(Math.sqrt(Math.sin(0.5*angle_rad))*(1.0 - beta2));
@@ -616,8 +623,9 @@ export let contraction_conical_method_unknown = 'Specified method not recognized
 export function contraction_conical({Di1, Di2, fd=null, l=null, angle=null,
                         Re=null, roughness=0.0, method='Rennels'}) {
     let beta = Di2/Di1;
+    let angle_rad;
     if( angle !== null ) {
-        let angle_rad = angle*deg2rad;
+        angle_rad = angle*deg2rad;
         let l = (Di1 - Di2)/(2.0*Math.tan(0.5*angle_rad));
     } else if( l !== null ) {
         if( l !== 0.0 ) {
@@ -628,6 +636,7 @@ export function contraction_conical({Di1, Di2, fd=null, l=null, angle=null,
     } else {
         throw new Error( 'ValueError','Either l or angle is required' );
     }
+    let A_ratio, l_ratio;
     if( method === 'Rennels' ) {
         if( fd === null ) {
             if( Re === null ) {
@@ -651,14 +660,16 @@ export function contraction_conical({Di1, Di2, fd=null, l=null, angle=null,
         // Diagram 3-6; already digitized for beveled entrance
         let K0 = float(bisplev(angle_rad*rad2deg, l/Di2, entrance_beveled_Idelchik_tck));
         // Angles 0 to 20, ratios 0.05 to 0.06
+        let angle_fric;
         if( angle_rad > 20.0*deg2rad ) {
-            let angle_fric = 20.0;
+            angle_fric = 20.0;
         } else if( angle_rad < 2.0*deg2rad ) {
             angle_fric = 2.0;
     } else {
             angle_fric = angle_rad*rad2deg;
         }
-        let A_ratio = A_ratio_fric = Di2*Di2/(Di1*Di1);
+        A_ratio = Di2*Di2/(Di1*Di1);
+        let A_ratio_fric = A_ratio;
         if( A_ratio_fric < 0.05 ) {
             let A_ratio_fric = 0.05;
         } else if( A_ratio_fric > 0.6 ) {
@@ -673,7 +684,7 @@ export function contraction_conical({Di1, Di2, fd=null, l=null, angle=null,
         } else if( A_ratio > 10.0 ) {
             A_ratio = 10.0;
     }
-        let l_ratio = l/Di2;
+        l_ratio = l/Di2;
         if( l_ratio > 0.6 ) {
             l_ratio = 0.6;
         }
@@ -699,8 +710,9 @@ export function contraction_conical({Di1, Di2, fd=null, l=null, angle=null,
         }
         let D1_D2 = Di1/Di2;
         let D1_D2_2 = D1_D2*D1_D2;
+        let K;
         if( Re <= 2500.0 ) {
-            let K = (1.2 + 160.0/Re)*(D1_D2_2*D1_D2_2 - 1.0);
+            K = (1.2 + 160.0/Re)*(D1_D2_2*D1_D2_2 - 1.0);
         } else {
             if( fd === null ) {
                 fd = Clamond( {Re: Re, eD: roughness/Di1 });
@@ -754,9 +766,10 @@ export function diffuser_sharp({Di1, Di2, Re=null, fd=null, roughness=0.0, metho
 export function diffuser_conical_Crane({Di1, Di2, l=null, angle=null}) {
     let beta = Di1/Di2;
     let beta2 = beta*beta;
+    let angle_rad, angle_deg;
     if( angle !== null ) {
-        let angle_rad = radians(angle);
-        let angle_deg = angle;
+        angle_rad = radians(angle);
+        angle_deg = angle;
     } else if( l !== null ) {
         if( l !== 0.0 ) {
             angle_rad = 2.0*Math.atan((Di1-Di2)/(2.0*l));
@@ -768,9 +781,10 @@ export function diffuser_conical_Crane({Di1, Di2, l=null, angle=null}) {
     } else {
         throw new Error( 'ValueError','Either `l` or `angle` must be specified' );
     }
+    let K2;
     if( angle_deg < 45.0 ) {
         // Formula 3
-        let K2 = 2.6*Math.sin(0.5*angle_rad)*(1.0 - beta2)**2/(beta2*beta2);
+        K2 = 2.6*Math.sin(0.5*angle_rad)*(1.0 - beta2)**2/(beta2*beta2);
     } else {
         K2 = (1.0 - beta2)**2/(beta2*beta2);
     }
@@ -790,20 +804,22 @@ export function diffuser_conical({Di1, Di2, l=null, angle=null, fd=null, Re=null
                      roughness=0.0, method='Rennels'}) {
     let beta = Di1/Di2;
     let beta2 = beta*beta;
+    let angle_rad, angle_deg, l_calc;
     if( l !== null ) {
-        let angle_rad = 2.0*Math.atan(0.5*(Di2-Di1)/l);
-        let angle_deg = angle_rad*rad2deg;
-        let l_calc = l;
+        angle_rad = 2.0*Math.atan(0.5*(Di2-Di1)/l);
+        angle_deg = angle_rad*rad2deg;
+        l_calc = l;
     } else if( angle !== null ) {
         angle_rad = angle*deg2rad;
         angle_deg = angle;
         l_calc = (Di2 - Di1)/(2.0*Math.tan(0.5*angle_rad));
-} else {
+    } else {
         throw new Error( 'ValueError','Either `l` or `angle` must be specified' );
     }
     if( method === null ) {
         let method = 'Rennels';
     }
+    let A_ratio, K;
     if( method === 'Rennels' ) {
         if( fd === null ) {
             if( Re === null ) {
@@ -812,7 +828,7 @@ export function diffuser_conical({Di1, Di2, l=null, angle=null, fd=null, Re=null
             let fd = Clamond( {Re: Re, eD: roughness/Di2, fast: false });
         }
         if( 0.0 < angle_deg <= 20.0 ) {
-            let K = 8.30*Math.tan(0.5*angle_rad)**1.75*(1.0 - beta2)**2 + 0.125*fd*(1.0 - beta2*beta2)/Math.sin(0.5*angle_rad);
+            K = 8.30*Math.tan(0.5*angle_rad)**1.75*(1.0 - beta2)**2 + 0.125*fd*(1.0 - beta2*beta2)/Math.sin(0.5*angle_rad);
         } else if( 20.0 < angle_deg <= 60.0 && 0.0 <= beta < 0.5 ) {
             K = (1.366*Math.sqrt(Math.sin(2.0*Math.PI*(angle_deg - 15.0)/180.)) - 0.170
             - 3.28*(0.0625-beta**4)*Math.sqrt(0.025*(angle_deg-20.0)))*(1.0 - beta2)**2 + 0.125*fd*(1.0 - beta2*beta2)/Math.sin(0.5*angle_rad);
@@ -830,7 +846,7 @@ export function diffuser_conical({Di1, Di2, l=null, angle=null, fd=null, Re=null
     } else if( method === 'Crane' ) {
         return diffuser_conical_Crane( {Di1: Di1, Di2: Di2, l: l_calc, angle: angle_deg });
     } else if( method === 'Miller' ) {
-        let A_ratio = 1.0/beta2;
+        A_ratio = 1.0/beta2;
         if( A_ratio > 4.0 ) {
             A_ratio = 4.0;
         } else if( A_ratio < 1.1 ) {
@@ -846,9 +862,10 @@ export function diffuser_conical({Di1, Di2, l=null, angle=null, fd=null, Re=null
         return Kd;
     } else if( method === 'Idelchik' ) {
         A_ratio = beta2;
+        let angle_fric;
         // Angles 0 to 20, ratios 0.05 to 0.06
         if( angle_deg > 20.0 ) {
-            let angle_fric = 20.0;
+            angle_fric = 20.0;
         } else if( angle_deg < 2.0 ) {
             angle_fric = 2.0;
     } else {
@@ -861,7 +878,7 @@ export function diffuser_conical({Di1, Di2, l=null, angle=null, fd=null, Re=null
             A_ratio_fric = 0.6;
     }
         let K_fr = float(contraction_conical_frction_Idelchik_obj(angle_fric, A_ratio_fric));
-        let K_exp = float(diffuser_conical_Idelchik_obj(min(0.6, A_ratio), Math.max(3.0, angle_deg)));
+        let K_exp = float(diffuser_conical_Idelchik_obj(Math.min(0.6, A_ratio), Math.max(3.0, angle_deg)));
         return K_fr + K_exp;
     } else if( method === 'Swamee' ) {
         // Really starting to thing Swamee uses a different definition of loss coefficient!
@@ -892,7 +909,7 @@ export function diffuser_conical_staged({Di1, Di2, DEs, ls, fd=null, method='Ren
     let K = 0.0;
     K += diffuser_conical( {Di1: Di1, Di2: DEs[0], l: ls[0], fd: fd, method: method });
     K += diffuser_conical( {Di1: DEs[-1], Di2: Di2, l: ls[-1], fd: fd, method: method });
-    for( let i of range(len(DEs)-1) ) {
+    for( let i=0; i < DEs.length-1; i++ ) {
         K += diffuser_conical( {Di1: DEs[i], Di2: DEs[i+1], l: ls[i+1], fd: fd, method: method });
     }
     return K;
@@ -952,16 +969,9 @@ export let Darby = {
   'Valve, Swing check': [1500.0, 0.46, 4.0],
   'Valve, Lift check': [2000.00, 2.85, 3.8]
 }
-try {
-    if (IS_NUMBA) // type: ignore
-        {
-          Darby_keys = tuple(Darby.keys());
-          Darby_values = tuple(Darby.values());
-        }
-      }
-catch(e){
-    /* pass */
-  }
+let Darby_keys, Darby_values;
+Darby_keys = Object.keys(Darby);
+Darby_values = Object.values(Darby);
 export function Darby3K({NPS=null, Re=null, name=null, K1=null, Ki=null, Kd=null}) {
     if( name !== null ) {
         let K1 = null;
@@ -970,7 +980,7 @@ export function Darby3K({NPS=null, Re=null, name=null, K1=null, Ki=null, Kd=null
         }
         if( K1 === null ) {
             try {
-                [K1, Ki, Kd] = Darby_values[Darby_keys.index(name)];
+                [K1, Ki, Kd] = Darby_values[Darby_keys.indexOf(name)];
             } catch( e ) {
                 throw new Error( 'ValueError','Name of fitting is not in database' );
             }
@@ -1018,16 +1028,9 @@ export let Hooper = {
   'Valve, Check, Tilting-disc': [1000.0, 0.5]
 };
 
-try {
-    if (IS_NUMBA) // type: ignore
-        {
-            Hooper_keys = tuple(Hooper.keys());
-            Hooper_values = tuple(Hooper.values());
-        }
-}
-catch(e){
-    /* pass */
-}
+let Hooper_keys, Hooper_values;
+Hooper_keys = Object.keys(Hooper);
+Hooper_values = Object.values(Hooper);
 export function Hooper2K({Di, Re, name=null, K1=null, Kinfty=null}) {
     if( name !== null ) {
         let K1 = null;
@@ -1036,7 +1039,7 @@ export function Hooper2K({Di, Re, name=null, K1=null, Kinfty=null}) {
         }
         if( K1 === null ) {
             try {
-                [K1, Kinfty] = Hooper_values[Hooper_keys.index(name)];
+                [K1, Kinfty] = Hooper_values[Hooper_keys.indexOf(name)];
             } catch( e ) {
                 throw new Error( 'ValueError','Name of fitting is not in database' );
             }
@@ -1076,13 +1079,14 @@ export function K_gate_valve_Crane({D1, D2, angle, fd=null}) {
         let fd = ft_Crane(D2);
     }
     let K1 = 8.0*fd; // This does not refer to upstream loss per se
+    let K;
     if( beta === 1.0 || angle === 0.0 ) {
         return K1; // upstream and down
     } else {
         let beta2 = beta*beta;
         let one_m_beta2 = 1.0 - beta2;
         if( angle <= 0.7853981633974483 ) {
-            let K = (K1 + Math.sin(0.5*angle)*(one_m_beta2*(0.8 + 2.6*one_m_beta2)))/(beta2*beta2);
+            K = (K1 + Math.sin(0.5*angle)*(one_m_beta2*(0.8 + 2.6*one_m_beta2)))/(beta2*beta2);
         } else {
             K = (K1 + one_m_beta2*(0.5*Math.sqrt(Math.sin(0.5*angle)) + one_m_beta2))/(beta2*beta2);
         }
@@ -1113,8 +1117,9 @@ export function K_angle_valve_Crane({D1, D2, fd=null, style=0}) {
     if( fd === null ) {
         let fd = ft_Crane(D2);
     }
+    let K1;
     if( style === 0 || style === 2 ) {
-        let K1 = 55.0*fd;
+        K1 = 55.0*fd;
     } else {
         K1 = 150.0*fd;
     }
@@ -1141,8 +1146,9 @@ export function K_lift_check_valve_Crane({D1, D2, fd=null, angled=true}) {
     if( fd === null ) {
         let fd = ft_Crane(D2);
     }
+    let K1;
     if( angled ) {
-        let K1 = 55*fd;
+        K1 = 55*fd;
         if( beta === 1 ) {
             return K1;
         } else {
@@ -1192,13 +1198,14 @@ export function K_globe_stop_check_valve_Crane({D1, D2, fd=null, style=0}) {
     if( fd === null ) {
         let fd = ft_Crane(D2);
     }
+    let K;
     if( style === 0 ) {
-        let K = 400.0*fd;
+        K = 400.0*fd;
     } else if( style === 1 ) {
         K = 300.0*fd;
-} else if( style === 2 ) {
+    } else if( style === 2 ) {
         K = 55.0*fd;
-} else {
+    } else {
         throw new Error( 'ValueError','Accepted valve styles are 0, 1, and 2 only' );
     }
     let beta = D1/D2;
@@ -1213,13 +1220,14 @@ export function K_angle_stop_check_valve_Crane({D1, D2, fd=null, style=0}) {
     if( fd === null ) {
         let fd = ft_Crane(D2);
     }
+    let K;
     if( style === 0 ) {
-        let K = 200.0*fd;
+        K = 200.0*fd;
     } else if( style === 1 ) {
         K = 350.0*fd;
-} else if( style === 2 ) {
+    } else if( style === 2 ) {
         K = 55.0*fd;
-} else {
+    } else {
         throw new Error( 'ValueError','Accepted valve styles are 0, 1, and 2 only' );
     }
     let beta = D1/D2;
@@ -1254,8 +1262,9 @@ export function K_diaphragm_valve_Crane({D=null, fd=null, style=0}) {
     if( fd === null ) {
         let fd = ft_Crane(D);
     }
+    let K;
     if( style === 0 ) {
-        let K = 149.0*fd;
+        K = 149.0*fd;
     } else if( style === 1 ) {
         K = 39.0*fd;
 } else {
@@ -1269,10 +1278,11 @@ export function K_foot_valve_Crane({D=null, fd=null, style=0}) {
         throw new Error( 'ValueError','Either `D` or `fd` must be specified' );
     }
     if( fd === null ) {
-        let fd = ft_Crane(D);
+        fd = ft_Crane(D);
     }
+    let K;
     if( style === 0 ) {
-        let K = 420.0*fd;
+        K = 420.0*fd;
     } else if( style === 1 ) {
         K = 75.0*fd;
 } else {
@@ -1286,13 +1296,14 @@ export function K_butterfly_valve_Crane({D, fd=null, style=0}) {
     if( fd === null ) {
         let fd = ft_Crane(D);
     }
+    let c1, c2, c3;
     if( style === 0 ) {
-        let [c1, c2, c3] = [45.0, 35.0, 25.0];
+        [c1, c2, c3] = [45.0, 35.0, 25.0];
     } else if( style === 1 ) {
-        let [c1, c2, c3] = [74.0, 52.0, 43.0];
-} else if( style === 2 ) {
-        let [c1, c2, c3] = [218.0, 96.0, 55.0];
-} else {
+        [c1, c2, c3] = [74.0, 52.0, 43.0];
+    } else if( style === 2 ) {
+        [c1, c2, c3] = [218.0, 96.0, 55.0];
+    } else {
         throw new Error( 'ValueError','Accepted valve styles are 0 (centric), 1 (double offset), or 2 (triple offset) only.' );
     }
     if( D <= 0.2286 ) {
@@ -1301,7 +1312,7 @@ export function K_butterfly_valve_Crane({D, fd=null, style=0}) {
     } else if( D <= 0.381 ) {
         // 10-14 inches, split at 15 inch
         return c2*fd;
-} else {
+    } else {
         // 16-18 inches
         return c3*fd;
     }
@@ -1312,8 +1323,9 @@ export function K_plug_valve_Crane({D1, D2, angle, fd=null, style=0}) {
         let fd = ft_Crane(D2);
     }
     let beta = D1/D2;
+    let K;
     if( style === 0 ) {
-        let K = 18.0*fd;
+        K = 18.0*fd;
     } else if( style === 1 ) {
         K = 30.0*fd;
 } else if( style === 2 ) {
@@ -1330,48 +1342,49 @@ export function K_plug_valve_Crane({D1, D2, angle, fd=null, style=0}) {
 }
 export function v_lift_valve_Crane({rho, D1=null, D2=null, style='swing check angled'}) {
     let specific_volume = 1./rho;
+    let beta, beta2;
     if( D1 !== null && D2 !== null ) {
-        let beta = D1/D2;
-        let beta2 = beta*beta;
+        beta = D1/D2;
+        beta2 = beta*beta;
     }
     if( style === 'swing check angled' ) {
         return 45.0*Math.sqrt(specific_volume);
     } else if( style === 'swing check straight' ) {
         return 75.0*Math.sqrt(specific_volume);
-}
- else if( style === 'swing check UL' ) {
+    }
+     else if( style === 'swing check UL' ) {
         return 120.0*Math.sqrt(specific_volume);
-}
- else if( style === 'lift check straight' ) {
+    }
+     else if( style === 'lift check straight' ) {
         return 50.0*beta2*Math.sqrt(specific_volume);
-}
- else if( style === 'lift check angled' ) {
+    }
+     else if( style === 'lift check angled' ) {
         return 170.0*beta2*Math.sqrt(specific_volume);
-}
- else if( style === 'tilting check 5°' ) {
+    }
+     else if( style === 'tilting check 5°' ) {
         return 100.0*Math.sqrt(specific_volume);
-}
- else if( style === 'tilting check 15°' ) {
+    }
+     else if( style === 'tilting check 15°' ) {
         return 40.0*Math.sqrt(specific_volume);
-}
- else if( style === 'stop check globe 1' ) {
+    }
+     else if( style === 'stop check globe 1' ) {
         return 70.0*beta2*Math.sqrt(specific_volume);
-}
- else if( style === 'stop check angle 1' ) {
+    }
+     else if( style === 'stop check angle 1' ) {
         return 95.0*beta2*Math.sqrt(specific_volume);
-}
- else if( style in ['stop check globe 2', 'stop check angle 2'] ) {
+    }
+     else if( style in ['stop check globe 2', 'stop check angle 2'] ) {
         return 75.0*beta2*Math.sqrt(specific_volume);
-}
- else if( style in ['stop check globe 3', 'stop check angle 3'] ) {
+    }
+     else if( style in ['stop check globe 3', 'stop check angle 3'] ) {
         return 170.0*beta2*Math.sqrt(specific_volume);
-}
- else if( style === 'foot valve poppet disc' ) {
+    }
+     else if( style === 'foot valve poppet disc' ) {
         return 20.0*Math.sqrt(specific_volume);
-}
- else if( style === 'foot valve hinged disc' ) {
+    }
+     else if( style === 'foot valve hinged disc' ) {
         return 45.0*Math.sqrt(specific_volume);
-}
+    }
 }
 let branch_converging_Crane_Fs = [1.74, 1.41, 1.0, 0.0];
 let branch_converging_Crane_angles = [30.0, 45.0, 60.0, 90.0];
@@ -1380,11 +1393,12 @@ export function K_branch_converging_Crane({D_run, D_branch, Q_run, Q_branch, ang
     let beta2 = beta*beta;
     let Q_comb = Q_run + Q_branch;
     let Q_ratio = Q_branch/Q_comb;
+    let C;
     if( beta2 <= 0.35 ) {
-        let C = 1.;
+        C = 1.;
     } else if( Q_ratio <= 0.4 ) {
         C = 0.9*(1 - Q_ratio);
-} else {
+    } else {
         C = 0.55;
     }
     let [D, E] = [1., 2.];
@@ -1399,8 +1413,9 @@ export function K_run_converging_Crane({D_run, D_branch, Q_run, Q_branch, angle=
     let beta2 = beta*beta;
     let Q_comb = Q_run + Q_branch;
     let Q_ratio = Q_branch/Q_comb;
+    let C;
     if( angle < 75.0 ) {
-        let C = 1.0;
+        C = 1.0;
     } else {
         return 1.55*(Q_ratio) - Q_ratio*Q_ratio;
     }
@@ -1414,15 +1429,17 @@ export function K_branch_diverging_Crane({D_run, D_branch, Q_run, Q_branch, angl
     let beta2 = beta*beta;
     let Q_comb = Q_run + Q_branch;
     let Q_ratio = Q_branch/Q_comb;
+    let H, J;
     if( angle < 60 || beta <= 2/3. ) {
-        let [H, J] = [1., 2.];
+        [H, J] = [1., 2.];
     } else {
-        let [H, J] = [0.3, 0];
+        [H, J] = [0.3, 0];
     }
+    let G;
     if( angle < 75 ) {
         if( beta2 <= 0.35 ) {
             if( Q_ratio <= 0.4 ) {
-                let G = 1.1 - 0.7*Q_ratio;
+                G = 1.1 - 0.7*Q_ratio;
             } else {
                 G = 0.85;
             }
@@ -1449,11 +1466,12 @@ export function K_run_diverging_Crane({D_run, D_branch, Q_run, Q_branch, angle=9
     let beta2 = beta*beta;
     let Q_comb = Q_run + Q_branch;
     let Q_ratio = Q_branch/Q_comb;
+    let M;
     if( beta2 <= 0.4 ) {
-        let M = 0.4;
+        M = 0.4;
     } else if( Q_ratio <= 0.5 ) {
         M = 2.*(2.*Q_ratio - 1.);
-} else {
+    } else {
         M = 0.3*(2.*Q_ratio - 1.);
     }
     return M*Q_ratio*Q_ratio;

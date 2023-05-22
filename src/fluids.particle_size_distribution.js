@@ -17,6 +17,7 @@ let __all__ = ['ParticleSizeDistribution', 'ParticleSizeDistributionContinuous',
            'ISO_3310_1_R40_3'];
 import { brenth, epsilon, gammaincc, linspace, logspace, cumsum, diff, normalize, quad } from './fluids.numerics_init.js' ;
 import { gamma, erf } from 'mathjs';
+import { listZip, stringInterpolate, hasAttr } from './_pyjs.js';
 
 ROOT_TWO_PI = Math.sqrt(2.0*Math.PI);
 
@@ -28,7 +29,7 @@ NO_MATPLOTLIB_MSG = 'Optional dependency matplotlib is required for plotting';
                  'inspection_sd', 'calibration_samples', 'calibration_sd',
                  'd_wire', 'd_wire_min', 'd_wire_max', 'compliance_samples');
     toString() {
-        return _pyjs.stringInterpolate( '<Sieve, designation %s mm, opening %g m>',[this.designation, this.opening] );
+        return stringInterpolate( '<Sieve, designation %s mm, opening %g m>',[this.designation, this.opening] );
     }
 
     constructor( designation, old_designation=null, opening=null,
@@ -343,13 +344,13 @@ export function psd_spacing({d_min=null, d_max=null, pts=20, method='logarithmic
         }
         if( d_min !== null ) {
             let ds = [d_min];
-            for( let i of range(pts-1) ) {
+            for( let i=0; i < pts-1; i++ ) {
                 ds.push(ds[ds.length - 1]*ratio);
             }
             return ds;
         } else if( d_max !== null ) {
             ds = [d_max];
-            for( let i of range(pts-1) ) {
+            for( let i=0; i < pts-1; i++ ) {
                 ds.push(ds[ds.length-1]/ratio);
             }
             return list(reversed(ds));
@@ -458,7 +459,7 @@ export function _label_distribution_n(n) {  // pragma: no cover
     if( n in names ) {
         return names[n];
     } else {
-        return _pyjs.stringInterpolate( 'Order %s distribution',str(n) );
+        return stringInterpolate( 'Order %s distribution',str(n) );
     }
 
 }
@@ -643,7 +644,7 @@ let _mean_size_iso_docstring = '_mean_size_iso_docstring';
         }
         plt.ylabel('Probability density function, [-]');
         plt.xlabel('Particle diameter, [m]');
-        plt.title(_pyjs.stringInterpolate( 'Probability density function of %s distribution with parameters %s',[this.name, this.parameters] ));
+        plt.title(stringInterpolate( 'Probability density function of %s distribution with parameters %s',[this.name, this.parameters] ));
         plt.legend();
         plt.show();
         return fractions;
@@ -669,19 +670,19 @@ let _mean_size_iso_docstring = '_mean_size_iso_docstring';
         if( this.points ) {
             plt.plot(this.ds, this.fraction_cdf, '+', { label: 'Volume/Mass points' });
 
-            if( _pyjs.hasAttr(self, 'area_fractions') ) {
+            if( hasAttr(self, 'area_fractions') ) {
                 plt.plot(this.ds, cumsum(this.area_fractions), '+', { label: 'Area points' });
             }
-            if( _pyjs.hasAttr(self, 'length_fractions') ) {
+            if( hasAttr(self, 'length_fractions') ) {
                 plt.plot(this.ds, cumsum(this.length_fractions), '+', { label: 'Length points' });
             }
-            if( _pyjs.hasAttr(self, 'number_fractions') ) {
+            if( hasAttr(self, 'number_fractions') ) {
                 plt.plot(this.ds, cumsum(this.number_fractions), '+', { label: 'Number points' });
             }
         }
         plt.ylabel('Cumulative density function, [-]');
         plt.xlabel('Particle diameter, [m]');
-        plt.title(_pyjs.stringInterpolate( 'Cumulative density function of %s distribution with parameters %s',[this.name, this.parameters] ));
+        plt.title(stringInterpolate( 'Cumulative density function of %s distribution with parameters %s',[this.name, this.parameters] ));
         plt.legend();
         plt.show();
     }
@@ -691,7 +692,7 @@ let _mean_size_iso_docstring = '_mean_size_iso_docstring';
  class ParticleSizeDistribution extends ParticleSizeDistributionContinuous {
     toString() {
         let txt = '<Particle Size Distribution, points=%d, D[3, 3]=%f m>';
-        return _pyjs.stringInterpolate( txt,[this.N, this.mean_size( {p: 3, q: 3 })] );
+        return stringInterpolate( txt,[this.N, this.mean_size( {p: 3, q: 3 })] );
     }
 
     size_classes = false;
@@ -737,19 +738,19 @@ let _mean_size_iso_docstring = '_mean_size_iso_docstring';
         }
         // Set the number fractions
         let D3s = range(this.N).map( i =>this.di_power(i, { power: 3 }) );
-        let numbers = _pyjs.listZip(this.fractions, D3s).map( ( [ Vi, Vp ] ) =>Vi/Vp );
+        let numbers = listZip(this.fractions, D3s).map( ( [ Vi, Vp ] ) =>Vi/Vp );
         let number_sum = sum(numbers);
         this.number_fractions = numbers.map( i =>i/number_sum );
 
         // Set the length fractions
         D3s = range(this.N).map( i =>this.di_power(i, { power: 2 }) );
-        numbers = _pyjs.listZip(this.fractions, D3s).map( ( [ Vi, Vp ] ) =>Vi/Vp );
+        numbers = listZip(this.fractions, D3s).map( ( [ Vi, Vp ] ) =>Vi/Vp );
         number_sum = sum(numbers);
         this.length_fractions = numbers.map( i =>i/number_sum );
 
         // Set the surface area fractions
         D3s = range(this.N).map( i =>this.di_power(i, { power: 1 }) );
-        numbers = _pyjs.listZip(this.fractions, D3s).map( ( [ Vi, Vp ] ) =>Vi/Vp );
+        numbers = listZip(this.fractions, D3s).map( ( [ Vi, Vp ] ) =>Vi/Vp );
         number_sum = sum(numbers);
         this.area_fractions = numbers.map( i =>i/number_sum );
 
@@ -794,7 +795,7 @@ let _mean_size_iso_docstring = '_mean_size_iso_docstring';
         let l = this.size_classes ? len(this.fractions) : len(this.fractions) - 1;
         for( let i; i<l; i++ ) {
             let delta_cdf = dist.delta_cdf( {d_min: this.ds[i], d_max: this.ds[i+1] });
-            err += abs(delta_cdf - this.fractions[i]);
+            err += Math.abs(delta_cdf - this.fractions[i]);
         }
         return err;
     }
@@ -812,13 +813,13 @@ let _mean_size_iso_docstring = '_mean_size_iso_docstring';
 
         if( distribution === 'lognormal' ) {
             if( x0 === null ) {
-                let d_characteristic = sum( _pyjs.listZip(this.fractions, this.Dis).map( ( [ fi, di ] ) =>fi*di ));
+                let d_characteristic = sum( listZip(this.fractions, this.Dis).map( ( [ fi, di ] ) =>fi*di ));
                 let s = 0.4;
                 let x0 = [d_characteristic, s];
             }
         } else if( distribution === 'GGS' ) {
             if( x0 === null ) {
-                d_characteristic = sum( _pyjs.listZip(this.fractions, this.Dis).map( ( [ fi, di ] ) =>fi*di ));
+                d_characteristic = sum( listZip(this.fractions, this.Dis).map( ( [ fi, di ] ) =>fi*di ));
                 let m = 1.5;
                 x0 = [d_characteristic, m];
             }
@@ -879,8 +880,8 @@ const { minimize } = require( './scipy.optimize' );
         let ds = this.Dis;
         let Vs = ds.map( di =>Math.PI/6*di**3 );
         let SAs = ds.map( di =>Math.PI*di**2 );
-        let SASs = _pyjs.listZip(SAs, Vs).map( ( [ SA, V ] ) =>SA/V );
-        let VSSA = sum( _pyjs.listZip(this.fractions, SASs).map( ( [ fi, SASi ] ) =>fi*SASi ));
+        let SASs = listZip(SAs, Vs).map( ( [ SA, V ] ) =>SA/V );
+        let VSSA = sum( listZip(this.fractions, SASs).map( ( [ fi, SASi ] ) =>fi*SASi ));
         return VSSA;
     }
 

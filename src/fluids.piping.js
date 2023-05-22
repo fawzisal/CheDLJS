@@ -535,7 +535,7 @@ export function nearest_pipe({Do=null, Di=null, NPS=null, schedule='40'}) {
     if( Do ) { Do *= 1E3; }
     if( NPS ) { NPS = float(NPS); }
     function Di_lookup({Di, NPSes, Dis, Dos, ts}) {
-        for( let i of range(len(Dis)) ) { // Go up ascending list; once larger than specified, return
+        for( let i=0; i < len(Dis); i++ ) { // Go up ascending list; once larger than specified, return
             if( Dis[Dis.length - 1] < Di ) { return null; }
             if( Dis[i] >= Di ) { return [NPSes[i], Dis[i], Dos[i], ts[i]]; }
         }
@@ -543,7 +543,7 @@ export function nearest_pipe({Do=null, Di=null, NPS=null, schedule='40'}) {
     }
 
     function Do_lookup({Do, NPSes, Dis, Dos, ts}) {
-        for( let i of range(len(Dos)) ) { // Go up ascending list; once larger than specified, return
+        for( let i=0; i < len(Dos); i++ ) { // Go up ascending list; once larger than specified, return
             if( Dos[Dos.length - 1] < Do ) { return null; }
             if( Dos[i] >= Do ) { return [NPSes[i], Dis[i], Dos[i], ts[i]]; }
         }
@@ -551,7 +551,7 @@ export function nearest_pipe({Do=null, Di=null, NPS=null, schedule='40'}) {
     }
 
     function NPS_lookup({NPS, NPSes, Dis, Dos, ts}) {
-        for( let i of range(len(NPSes)) ) { // Go up ascending list; once larger than specified, return
+        for( let i=0; i < len(NPSes); i++ ) { // Go up ascending list; once larger than specified, return
             if( NPSes[i] === NPS ) { return [NPSes[i], Dis[i], Dos[i], ts[i]]; }
         }
         throw new Error( 'ValueError','NPS not in list' );
@@ -744,7 +744,7 @@ export function gauge_from_t({t, SI=true, schedule='BWG'}) {
     if( t_inch > sch_max ) { throw new Error( 'ValueError','Input thickness is above the largest in the selected schedule' ); }
     if( t_inch in sch_inch ) { let gauge = sch_integers[sch_inch.index(t_inch)]; }
     else {
-        for( let i of range(len(sch_inch)) ) {
+        for( let i=0; i < len(sch_inch); i++ ) {
             if( sch_inch[i] >= t_inch ) { let larger = sch_inch[i]; }
             else { break; }
         }

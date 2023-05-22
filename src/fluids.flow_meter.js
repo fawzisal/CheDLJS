@@ -3,6 +3,7 @@ import { friction_factor } from './fluids.friction.js' ;
 import { Froude_densimetric } from './fluids.core.js' ;
 import { interp, secant, brenth, NotBoundedError, implementation_optimize_tck, bisplev } from './fluids.numerics_init.js' ;
 import { g, inch, inch_inv, pi_inv, root_two } from './fluids.constants.js' ;
+import { float } from './_pyjs.js';
 let __all__ = ['C_Reader_Harris_Gallagher', 'differential_pressure_meter_solver', 'differential_pressure_meter_dP', 'flow_meter_discharge', 'orifice_expansibility', 'discharge_coefficient_to_K', 'K_to_discharge_coefficient', 'dP_orifice', 'velocity_of_approach_factor', 'flow_coefficient', 'nozzle_expansibility', 'C_long_radius_nozzle', 'C_ISA_1932_nozzle', 'C_venturi_nozzle', 'orifice_expansibility_1989', 'dP_venturi_tube', 'diameter_ratio_cone_meter', 'diameter_ratio_wedge_meter', 'cone_meter_expansibility_Stewart', 'dP_cone_meter', 'C_wedge_meter_Miller', 'C_wedge_meter_ISO_5167_6_2017', 'dP_wedge_meter', 'C_Reader_Harris_Gallagher_wet_venturi_tube', 'dP_Reader_Harris_Gallagher_wet_venturi_tube', 'differential_pressure_meter_C_epsilon', 'differential_pressure_meter_beta', 'C_eccentric_orifice_ISO_15377_1998', 'C_quarter_circle_orifice_ISO_15377_1998', 'C_Miller_1996', 'all_meters', ];
 let CONCENTRIC_ORIFICE = 'orifice'; // normal
 let ECCENTRIC_ORIFICE = 'eccentric orifice';
@@ -66,8 +67,9 @@ export function C_Reader_Harris_Gallagher({D, Do, rho, mu, m, taps='corner'}) {
     let Re_D = rho*v*D/mu;
     let Re_D_inv = 1.0/Re_D;
     let beta = Do/D;
+    let L1, L2_prime;
     if( taps === 'corner' ) {
-        let [L1, L2_prime] = [0.0, 0.0];
+        [L1, L2_prime] = [0.0, 0.0];
     } else if( taps === 'flange' ) {
         L1 = L2_prime = 0.0254/D;
     } else if( taps  === 'D' || taps === 'D/2' || taps === ORIFICE_D_AND_D_2_TAPS ) {
@@ -137,11 +139,12 @@ export function C_Miller_1996({D, Do, rho, mu, m, subtype='orifice',
     let beta4 = beta*beta3;
     let beta8 = beta4*beta4;
     let beta21 = beta**2.1;
+    let C_inf, b, n;
     if( subtype === MILLER_ORIFICE || subtype === CONCENTRIC_ORIFICE ) {
         let b = 91.706*beta**2.5;
         let n = 0.75;
         if( taps === ORIFICE_CORNER_TAPS ) {
-            let C_inf = 0.5959 + 0.0312*beta21 - 0.184*beta8;
+            C_inf = 0.5959 + 0.0312*beta21 - 0.184*beta8;
         } else if( taps === ORIFICE_FLANGE_TAPS ) {
             if( D_mm >= 58.4 ) {
                 C_inf = 0.5959 + 0.0312*beta21 - 0.184*beta8 + 2.286*beta4/(D_mm*(1.0 - beta4)) - 0.856*beta3/D_mm;
@@ -343,6 +346,7 @@ export function nozzle_expansibility({D, Do, P1, P2, k, beta=null}) {
     }
     let term1 = k*tau**(2.0/k)/(k - 1.0);
     let term2 = (1.0 - beta4)/(1.0 - beta4*tau**(2.0/k));
+    let term3;
     if( tau === 1.0 ) {
         /*Avoid a zero division error.
         Obtained with:
@@ -351,7 +355,7 @@ export function nozzle_expansibility({D, Do, P1, P2, k, beta=null}) {
             expr = (1 - tau**((k - 1)/k))/(1 - tau)
             limit(expr, tau, 1)
         */
-        let term3 = (k - 1.0)/k;
+        term3 = (k - 1.0)/k;
     } else {
         // This form of the equation is mathematically equivalent but
         // does not have issues where k = `.
@@ -451,9 +455,10 @@ export function diameter_ratio_wedge_meter({D, H}) {
 export function C_wedge_meter_Miller({D, H}) {
     let beta = diameter_ratio_wedge_meter(D, H);
     beta *= beta;
+    let C;
     if( D <= 0.7*inch ) {
         // suggested limit 0.5 inch for this equation
-        let C = 0.7883 + 0.107*(1.0 - beta);
+        C = 0.7883 + 0.107*(1.0 - beta);
     } else if( D <= 1.4*inch ) {
         // Suggested limit is under 1.5 inches
         C = 0.6143 + 0.718*(1.0 - beta);
@@ -484,7 +489,7 @@ export function C_Reader_Harris_Gallagher_wet_venturi_tube({mg, ml, rhog, rhol, 
     let C_Ch = t1 + 1.0/t1;
     let X =  ml/mg*Math.sqrt(t0);
     // OF = Math.sqrt(1.0 + X*(C_Ch + X))
-    let C = 1.0 - 0.0463*Math.exp(-0.05*Fr_gas_th)*min(1.0, Math.sqrt(X/0.016));
+    let C = 1.0 - 0.0463*Math.exp(-0.05*Fr_gas_th)*Math.min(1.0, Math.sqrt(X/0.016));
     return C;
 }
 export function dP_Reader_Harris_Gallagher_wet_venturi_tube({D, Do, P1, P2, ml, mg, rhol,
@@ -603,8 +608,9 @@ and their correlations.
 */
 let _unsupported_meter_msg = "Supported meter types are %s" % all_meters;
 export function differential_pressure_meter_beta({D, D2, meter_type}) {
+    let beta;
     if( meter_type in beta_simple_meters ) {
-        let beta = D2/D;
+        beta = D2/D;
     } else if( meter_type === CONE_METER || meter_type === HOLLINGSHEAD_CONE ) {
         beta = diameter_ratio_cone_meter( {D: D, Dc: D2 });
     } else if( meter_type === WEDGE_METER || meter_type === HOLLINGSHEAD_WEDGE ) {
@@ -627,7 +633,7 @@ export function differential_pressure_meter_C_epsilon({D, D2, m, P1, P2, rho, mu
                                           epsilon_specified=null}) {
 //    // Translate default meter type to implementation specific correlation
     if( meter_type === CONCENTRIC_ORIFICE ) {
-        let meter_type = ISO_5167_ORIFICE;
+        meter_type = ISO_5167_ORIFICE;
     } else if( meter_type === ECCENTRIC_ORIFICE ) {
         meter_type = ISO_15377_ECCENTRIC_ORIFICE;
     } else if( meter_type === CONICAL_ORIFICE ) {
@@ -637,9 +643,10 @@ export function differential_pressure_meter_C_epsilon({D, D2, m, P1, P2, rho, mu
     } else if( meter_type === SEGMENTAL_ORIFICE ) {
         meter_type = MILLER_SEGMENTAL_ORIFICE;
     }
+    let C, epsilon, beta, v, Re_D;
     if( meter_type === ISO_5167_ORIFICE ) {
-        let C = C_Reader_Harris_Gallagher(D, D2, rho, mu, m, taps);
-        let epsilon = orifice_expansibility(D, D2, P1, P2, k);
+        C = C_Reader_Harris_Gallagher(D, D2, rho, mu, m, taps);
+        epsilon = orifice_expansibility(D, D2, P1, P2, k);
     } else if( meter_type === ISO_15377_ECCENTRIC_ORIFICE ) {
         C = C_eccentric_orifice_ISO_15377_1998(D, D2);
         epsilon = orifice_expansibility(D, D2, P1, P2, k);
@@ -649,7 +656,7 @@ export function differential_pressure_meter_C_epsilon({D, D2, m, P1, P2, rho, mu
     } else if( meter_type === ISO_15377_CONICAL_ORIFICE ) {
         C = ISO_15377_CONICAL_ORIFICE_C;
         // Average of concentric square edge orifice and ISA 1932 nozzles
-        let epsilon = 0.5*(orifice_expansibility(D, D2, P1, P2, k)
+        epsilon = 0.5*(orifice_expansibility(D, D2, P1, P2, k)
                        + nozzle_expansibility( {D: D, Do: D2, P1: P1, P2: P2, k: k }));
     } else if( meter_type in [MILLER_ORIFICE, MILLER_ECCENTRIC_ORIFICE,
                       MILLER_SEGMENTAL_ORIFICE, MILLER_QUARTER_CIRCLE_ORIFICE] ) {
@@ -683,12 +690,12 @@ export function differential_pressure_meter_C_epsilon({D, D2, m, P1, P2, rho, mu
         epsilon = cone_meter_expansibility_Stewart( {D: D, Dc: D2, P1: P1, P2: P2, k: k });
         C = CONE_METER_C;
     } else if( meter_type === WEDGE_METER ) {
-        let beta = diameter_ratio_wedge_meter( {D: D, H: D2 });
+        beta = diameter_ratio_wedge_meter( {D: D, H: D2 });
         epsilon = nozzle_expansibility( {D: D, Do: D2, P1: P1, P2: P1, k: k, beta: beta });
         C = C_wedge_meter_ISO_5167_6_2017( {D: D, H: D2 });
     } else if( meter_type === HOLLINGSHEAD_ORIFICE ) {
-        let v = m/((0.25*Math.PI*D*D)*rho);
-        let Re_D = rho*v*D/mu;
+        v = m/((0.25*Math.PI*D*D)*rho);
+        Re_D = rho*v*D/mu;
         C = float(bisplev(D2/D, Math.log(Re_D), orifice_std_Hollingshead_tck));
         epsilon = orifice_expansibility(D, D2, P1, P2, k);
     } else if( meter_type === HOLLINGSHEAD_VENTURI_SMOOTH ) {
@@ -774,6 +781,7 @@ export function differential_pressure_meter_solver({D, rho, mu, k=null, D2=null,
     if( k === null && epsilon_specified !== null ) {
         let k = 1.4;
     }
+    let args;
     if( m === null && D !== null && D2 !== null && P1 !== null && P2 !== null ) {
         // Initialize via analytical formulas
         let C_guess = 0.7;
@@ -789,7 +797,7 @@ export function differential_pressure_meter_solver({D, rho, mu, k=null, D2=null,
         //     m_D_guess *= 1e-2
         return secant(err_dp_meter_solver_m, m_D_guess, { args: [D, D2, P1, P2, rho, mu, k, meter_type, taps, tap_position, C_specified, epsilon_specified], low: 1e-40 })*D;
     } else if( D2 === null && D !== null && m !== null && P1 !== null && P2 !== null ) {
-        let args = [D, m, P1, P2, rho, mu, k, meter_type, taps, tap_position, C_specified, epsilon_specified];
+        args = [D, m, P1, P2, rho, mu, k, meter_type, taps, tap_position, C_specified, epsilon_specified];
         try {
             return brenth(err_dp_meter_solver_D2, D*(1-1E-9), D*5E-3, { args: args });
         } catch( e ) {
@@ -822,11 +830,12 @@ let _dP_orifice_set = [ISO_5167_ORIFICE, ISO_15377_ECCENTRIC_ORIFICE, ISO_15377_
 let _missing_C_msg = "Parameter C is required for this orifice type";
 export function differential_pressure_meter_dP({D, D2, P1, P2, C=null,
                                    meter_type=ISO_5167_ORIFICE}) {
+    let dP;
     if( meter_type in _dP_orifice_set ) {
         if( C === null ) {
             throw new Error( 'ValueError',_missing_C_msg );
         }
-        let dP = dP_orifice( {D: D, Do: D2, P1: P1, P2: P2, C: C });
+        dP = dP_orifice( {D: D, Do: D2, P1: P1, P2: P2, C: C });
     } else if( meter_type === LONG_RADIUS_NOZZLE ) {
         if( C === null ) {
             throw new Error( 'ValueError',_missing_C_msg );

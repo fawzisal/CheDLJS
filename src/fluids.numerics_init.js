@@ -1,4 +1,5 @@
 import { atan2, gamma, complex } from 'mathjs';
+import { listZip, isInstance, stringInterpolate, float } from './_pyjs.js';
 // TODO: implement complex numbers
 // import { sqrt, log } from './cmath';
 let csqrt = Math.sqrt;
@@ -118,7 +119,7 @@ export function sincos(x) {
   let M4PI = 1.273239544735162542821171882678754627704620361328125; //// 4/pi
   let [sinSign, cosSign] = [false, false];
   if( x < 0 ) { x = -x; sinSign = true; }
-  let j = int(x * M4PI);
+  let j = ~~(x * M4PI);
   let y = float(j);
   if( j&1 === 1 ) { j += 1; y += 1; }
   j &= 7;
@@ -148,13 +149,15 @@ export function sincos(x) {
 //     catanh = py_catanh;
 //     let _wraps = null;
 // }
-export function my_wraps() {
-    var _wraps;
-    if( _wraps !== null ) { return _wraps; }
-    const { wraps } = require( './functools' );
-    _wraps = wraps;
-    return _wraps;
-}
+
+// JS: not used
+// export function my_wraps() {
+//     var _wraps;
+//     if( _wraps !== null ) { return _wraps; }
+//     const { wraps } = require( './functools' );
+//     _wraps = wraps;
+//     return _wraps;
+// }
 export const epsilon = Number.EPSILON;
 let one_epsilon_larger = 1.0 + epsilon;
 let one_epsilon_smaller = 1.0 - epsilon;
@@ -215,14 +218,16 @@ let one_27 = 1.0/27.0;
 //     return [root1, root2, root3];
 // }
 export function roots_cubic(a, b, c, d) {
+  let D, b_inv_2, x1, x2;
     if( a === 0.0 ) {
         if( b === 0.0 ) {
             return [-d/c, ];
         }
-        let D = c*c - 4.0*b*d;
-        let b_inv_2 = 0.5/b;
+        D = c*c - 4.0*b*d;
+        b_inv_2 = 0.5/b;
         if( D < 0.0 ) {
             throw(new Error("TODO: Implement complex numbers"))
+            // JS: complex numbers
             // D = Math.sqrt(-D);
             // let x1 = (-c + D*1.0j)*b_inv_2;
             // let x2 = (-c - D*1.0j)*b_inv_2;
@@ -241,28 +246,31 @@ export function roots_cubic(a, b, c, d) {
     let f = c*a_inv - b_a2*third;
     let g = ((2.0*(bb*b) * a_inv2*a_inv) - (9.0*b*c)*(a_inv2) + (27.0*d*a_inv))*one_27;
     let h = (0.25*(g*g) + (f*f*f)*one_27);
+    let t2, x3;
     if( h === 0.0 && g === 0.0 && f === 0.0 ) {
-        if( d/a >= 0.0 ) { let x = -((d*a_inv)**(third)); }
+        let x;
+        if( d/a >= 0.0 ) { x = -((d*a_inv)**(third)); }
         else { x = (-d*a_inv)**(third); }
         return [x, x, x];
     } else if( h > 0.0 ) {
         let root_h = Math.sqrt(h);
         let R = -0.5*g + root_h;
         // It is possible to save one of the power of thirds!
-        if( R >= 0.0 ) { let S = R**third; }
+        let S, U;
+        if( R >= 0.0 ) { S = R**third; }
         else { S = -((-R)**third); }
         let T = -(0.5*g) - root_h;
-        if( T >= 0.0 ) { let U = (T**(third)); }
+        if( T >= 0.0 ) { U = (T**(third)); }
         else { U = -(((-T)**(third))); }
         let SU = S + U;
         let b_3a = b*(third*a_inv);
         let t1 = -0.5*SU - b_3a;
         throw(new Error("TODO: Implement complex numbers"))
-        let t2 = (S - U)*complex_factor;
+        t2 = (S - U)*complex_factor;
         x1 = SU - b_3a;
         // x1 is OK actually in some tests? the issue is x2, x3?
         let x2 = t1 + t2;
-        let x3 = t1 - t2;
+        x3 = t1 - t2;
       }
       else {
         t2 = a*a;
@@ -374,20 +382,20 @@ export function linspace(start, stop, num=50, endpoint=true, retstep=false, dtyp
         let step = (stop-start)/float((num-1));
         if( num === 1 ) { step = nan; }
         let y = [start];
-        for( let _ of range(num-2) ) { y.push(y[y.length-1] + step); }
+        for( let _=0; _ < num-2; _++ ) { y.push(y[y.length-1] + step); }
         y.push(stop);
     } else {
         step = (stop-start)/float(num);
         if( num === 1 ) { step = nan; }
         y = [start];
-        for( let _ of range(num-1) ) { y.push(y[y.length-1] + step); }
+        for( let _=0; _ < num-1; _++ ) { y.push(y[y.length-1] + step); }
     }
     if( retstep ) { return [y, step]; }
     else { return y; }
 }
 export function logspace(start, stop, num=50, endpoint=true, base=10.0, dtype=null) {
     let y = linspace(start, stop, { num: num, endpoint: endpoint });
-    for( let i of range(y.length) ) { y[i] = base**y[i]; }
+    for( let i=0; i < y.length; i++ ) { y[i] = base**y[i]; }
     return y;
 }
 export function product(l) {
@@ -402,9 +410,9 @@ export function cumsum(a) {
 }
 export function diff(a, n=1, axis=-1) {
     if( n === 0 ) { return a; }
-    if( n < 0 ) { throw new Error( 'ValueError', _pyjs.stringInterpolate( "order must be non-negative but got %s", [(n) ] ) ); }
+    if( n < 0 ) { throw new Error( 'ValueError', stringInterpolate( "order must be non-negative but got %s", [(n) ] ) ); }
     let diffs = [];
-    for( let i of range(1, a.length) ) {
+    for( let i=1; i < a.length; i++ ) {
         let delta = a[i] - a[i-1];
         diffs.push(delta);
     }
@@ -432,7 +440,7 @@ export function central_diff_weights(points, divisions=1) {
     // Check the cache
     if( [divisions, points] in central_diff_weights_precomputed ) { return central_diff_weights_precomputed[[divisions, points]]; }
     if( points < divisions + 1 ) { throw new Error( 'ValueError',"Points < divisions + 1, cannot compute" ); }
-    if( _pyjs.stringInterpolate( points, [ 2 ] ) === 0 ) { throw new Error( 'ValueError',"Odd number of points required" ); }
+    if( stringInterpolate( points, [ 2 ] ) === 0 ) { throw new Error( 'ValueError',"Odd number of points required" ); }
     let ho = points >> 1;
     let x = range(-ho, ho+1).map( xi =>[xi] );
     let X = [];
@@ -461,7 +469,7 @@ export function derivative({func, x0, dx=1.0, n=1, args=[], order=3, scalar=true
     if( order < n + 1 ) {
         throw new Error( 'ValueError' );
     }
-    if( _pyjs.stringInterpolate( order, [ 2 ] ) === 0 ) {
+    if( stringInterpolate( order, [ 2 ] ) === 0 ) {
         throw new Error( 'ValueError' );
     }
     let weights = central_diff_weights(order, n);
@@ -585,14 +593,14 @@ export function jacobian(f, x0, scalar=true, perturbation=1e-9, zero_offset=1e-7
             gradient.push(dy);
         } else {
             let delta_inv = 1.0/delta;
-            let dys = _pyjs.listZip(point, base).map( ( [ p, b ] ) =>delta_inv*(p - b) );
+            let dys = listZip(point, base).map( ( [ p, b ] ) =>delta_inv*(p - b) );
             gradient.push(dys);
         }
         x[i] -= delta;
     }
     if( !scalar ) {
         // Transpose to be in standard form
-        return list(map(list, _pyjs.listZip(...gradient)));
+        return list(map(list, listZip(...gradient)));
     }
     return gradient;
 }
@@ -600,7 +608,7 @@ export function hessian(f, x0, scalar=true, perturbation=1e-9, zero_offset=1e-7,
     // let base = f(x0, args, ...kwargs);
     let base = f(x0);
     let nx = x0.length;
-    if( !_pyjs.isInstance(base, [float, int, complex]) ) {
+    if( !isInstance(base, [float, int, complex]) ) {
         try {
             let ny = base.length;
         } catch( e ) {
@@ -638,7 +646,7 @@ export function hessian(f, x0, scalar=true, perturbation=1e-9, zero_offset=1e-7,
         }
         f_perturb_i = fs_perturb_i[i];
         x_perturb[i] += deltas[i];
-        for( let j of range(i+1) ) {
+        for( let j=0; j < i+1; j++ ) {
             let f_perturb_j = fs_perturb_i[j];
             x_perturb[j] += deltas[j];
             // let f_perturb_ij = f(x_perturb, args, ...kwargs);
@@ -1146,7 +1154,7 @@ export function is_poly_negative(poly, domain=null, rand_pts=10, j_tol=1e-12, ro
 }
 export function min_max_ratios(actual, calculated) {
     let min_ratio = max_ratio = 1.0;
-    for( let i of range(actual.length) ) {
+    for( let i=0; i < actual.length; i++ ) {
         if( actual[i] === 0.0 ) {
             let r = calculated[i] === actual[i] ? 1.0 : 10.0;
         } else {
@@ -1343,7 +1351,7 @@ export function poly_fit_integral_over_T_value(T, T_int_T_coeffs, poly_fit_log_c
 export function evaluate_linear_fits(data, x) {
     let calc = [];
     let [low_limits, high_limits, coeffs] = [data[0], data[3], data[6]];
-    for( let i of range(len(data[0])) ) {
+    for( let i=0; i < len(data[0]); i++ ) {
         if( x < low_limits[i] ) {
             let v = (x - low_limits[i])*data[1][i] + data[2][i];
         } else if( x > high_limits[i] ) {
@@ -1362,7 +1370,7 @@ export function evaluate_linear_fits(data, x) {
 export function evaluate_linear_fits_d(data, x) {
     let calc = [];
     let [low_limits, high_limits, dcoeffs] = [data[0], data[3], data[7]];
-    for( let i of range(len(data[0])) ) {
+    for( let i=0; i < len(data[0]); i++ ) {
         if( x < low_limits[i] ) {
             let dv = data[1][i];
         } else if( x > high_limits[i] ) {
@@ -1380,7 +1388,7 @@ export function evaluate_linear_fits_d(data, x) {
 export function evaluate_linear_fits_d2(data, x) {
     let calc = [];
     let [low_limits, high_limits, d2coeffs] = [data[0], data[3], data[8]];
-    for( let i of range(len(data[0])) ) {
+    for( let i=0; i < len(data[0]); i++ ) {
         let d2v = 0.0;
         if( low_limits[i] < x < high_limits[i] ) {
             for( let c of d2coeffs[i] ) {
@@ -1401,7 +1409,7 @@ export function chebval(x, c, offset=0.0, scale=1.0) {
     } else {
         let x2 = 2.0*x;
         [c0, c1] = c[-2], c[c.length-1];
-        for( let i of range(3, len_c + 1) ) {
+        for( let i=3; i < len_c + 1; i++ ) {
             let c0_prev = c0;
             c0 = c[-i] - c1;
             let c1 = c0_prev + c1*x2;
@@ -1422,7 +1430,7 @@ export function chebder(c, m=1, scl=1.0) {
         for( let i; i<cnt; i++ ) {
             n = n - 1;
             if( scl !== 1.0 ) {
-                for( let j of range(c.length) ) {
+                for( let j=0; j < c.length; j++ ) {
                     c[j] *= scl;
                 }
             }
@@ -1468,7 +1476,7 @@ export function chebint(c, m=1, lbnd=0, scl=1) {
             if( n > 1 ) {
                 tmp[2] = c[1]/4;
             }
-            for( let j of range(2, n) ) {
+            for( let j=2; j < n; j++ ) {
                 let cval = c[j];
                 tmp[j + 1] = cval/(2.0*(j + 1.0));
                 tmp[j - 1] -= cval/(2.0*(j - 1.0));
@@ -1549,7 +1557,7 @@ export function assert_close(a, b, rtol=1e-7, atol=0.0) {
 export function assert_close1d(a, b, rtol=1e-7, atol=0.0) {
     let N = a.length;
     if( N !== b.length ) {
-        throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) );
+        throw new Error( 'ValueError',stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) );
     }
     for( let i; i<N; i++ ) {
         assert_close(a[i], b[i], { rtol: rtol, atol: atol });
@@ -1563,7 +1571,7 @@ export function assert_close2d(a, b, rtol=1e-7, atol=0.0) {
     //    assert_close1d(a[i], b[i], rtol=rtol, atol=atol)
     let N = a.length;
     if( N !== b.length ) {
-        throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) );
+        throw new Error( 'ValueError',stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) );
     }
     if( !__debug__ ) {
         // Do not run these branches in -O, -OO mode
@@ -1573,7 +1581,7 @@ export function assert_close2d(a, b, rtol=1e-7, atol=0.0) {
     for( let i; i<N; i++ ) {
         let [a0, b0] = [a[i], b[i]];
         let N0 = a0.length;
-        if( N0 !== b0.length ) { throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N0, b0.length] ) ); }
+        if( N0 !== b0.length ) { throw new Error( 'ValueError',stringInterpolate( "Variables are not the same length: %d, %d",[N0, b0.length] ) ); }
         for( let j; j<N0; j++ ) {
            // assert_close(a0[j], b0[j], rtol=rtol, atol=atol)
             let good = true;
@@ -1601,16 +1609,16 @@ export function assert_close2d(a, b, rtol=1e-7, atol=0.0) {
 }
 export function assert_close3d(a, b, rtol=1e-7, atol=0.0) {
     let N = a.length;
-    if( N !== b.length ) { throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) ); }
+    if( N !== b.length ) { throw new Error( 'ValueError',stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) ); }
     for( let i; i<N; i++ ) { assert_close2d(a[i], b[i], { rtol: rtol, atol: atol }); }
 }
 export function assert_close4d(a, b, rtol=1e-7, atol=0.0) {
     let N = a.length;
-    if( N !== b.length ) { throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) ); }
+    if( N !== b.length ) { throw new Error( 'ValueError',stringInterpolate( "Variables are not the same length: %d, %d",[N, b.length] ) ); }
     for( let i; i<N; i++ ) {
         let [a0, b0] = [a[i], b[i]];
         let N0 = a0.length;
-        if( N0 !== b0.length ) { throw new Error( 'ValueError',_pyjs.stringInterpolate( "Variables are not the same length: %d, %d",[N0, b0.length] ) ); }
+        if( N0 !== b0.length ) { throw new Error( 'ValueError',stringInterpolate( "Variables are not the same length: %d, %d",[N0, b0.length] ) ); }
         for( let j; j<N0; j++ ) { assert_close2d(a0[j], b0[j], { rtol: rtol, atol: atol }); }
     }
 }
@@ -1634,7 +1642,7 @@ export function interp2d_linear(x, y, xs, ys, vals) {
     // Same as RectBivariateSpline, s=0, kx=1, ky=1 (and better performance)
     if( y < ys[0] ) { let [i0, i1] = [0, 1]; let y_dat = [ys[i0], ys[i1]]; }
     else if( y > ys[ys.length-1] ) { [i0, i1] = [-2, -1]; }
-    else { for( let i of range(ys.length) ) { if( ys[i] >= y ) { [i0, i1] = [i-1, i]; break; } } }
+    else { for( let i=0; i < ys.length; i++ ) { if( ys[i] >= y ) { [i0, i1] = [i-1, i]; break; } } }
     let [y_low, y_high] = [ys[i0], ys[i1]];
     let v_low = interp(x, xs, vals[i0], { extrapolate: true });
     let v_high = interp(x, xs, vals[i1], { extrapolate: true });
@@ -1706,21 +1714,21 @@ export function translate_bound_func(func, bounds=null, low=null, high=null) {
     function new_f(x, args, ...kwargs) {
         /*Function for a solver to call when using the bounded variables.*/
         x = x.map( i =>float(i) );
-        for( let i of range(x.length) ) { x[i] = (low[i] + (high[i] - low[i])/(1.0 + Math.exp(-x[i]))); }
+        for( let i=0; i < x.length; i++ ) { x[i] = (low[i] + (high[i] - low[i])/(1.0 + Math.exp(-x[i]))); }
         // Return the actual results
         // return func(x, args, ...kwargs);
         return func(x);
     }
     function translate_into(x) {
         x = x.map( i =>float(i) );
-        for( let i of range(x.length) ) {
+        for( let i=0; i < x.length; i++ ) {
             x[i] = -Math.log((high[i] - x[i])/(x[i] - low[i]));
         }
         return x;
     }
     function translate_outof(x) {
         x = x.map( i =>float(i) );
-        for( let i of range(x.length) ) {
+        for( let i=0; i < x.length; i++ ) {
             x[i] = (low[i] + (high[i] - low[i])/(1.0 + Math.exp(-x[i])));
         }
         return x;
@@ -1753,14 +1761,14 @@ export function translate_bound_jac(jac, bounds=null, low=null, high=null) {
     }
     function translate_into(x) {
         x = x.map( i =>float(i) );
-        for( let i of range(x.length) ) {
+        for( let i=0; i < x.length; i++ ) {
             x[i] = -Math.log((high[i] - x[i])/(x[i] - low[i]));
         }
         return x;
     }
     function translate_outof(x) {
         x = x.map( i =>float(i) );
-        for( let i of range(x.length) ) {
+        for( let i=0; i < x.length; i++ ) {
             x[i] = (low[i] + (high[i] - low[i])/(1.0 + Math.exp(-x[i])));
         }
         return x;
@@ -1787,12 +1795,12 @@ export function translate_bound_f_jac(f, jac, bounds=null, low=null, high=null, 
             let jac_base = jac(x_base, ...args);
         }
         try {
-            if( Object.is( type(jac_base[0]), list ) || (_pyjs.isInstance(jac_base, np.ndarray) && len(jac_base.shape) === 2) ) {
+            if( Object.is( type(jac_base[0]), list ) || (isInstance(jac_base, np.ndarray) && len(jac_base.shape) === 2) ) {
                 if( !inplace_jac ) {
                     let jac_base = jac_base.map( i => i );
                 }
-                for( let i of range(jac_base.length) ) {
-                    for( let j of range(len(jac_base[i])) ) {
+                for( let i=0; i < jac_base.length; i++ ) {
+                    for( let j=0; j < len(jac_base[i]); j++ ) {
                         // Checked numerically
                         let t = (1.0 + exp_terms[j]);
                         jac_base[i][j] = (high[j] - low[j])*exp_terms[j]*jac_base[i][j]/(t*t);
@@ -1817,14 +1825,14 @@ export function translate_bound_f_jac(f, jac, bounds=null, low=null, high=null, 
     }
     function translate_into(x) {
         //x = [float(i) for i in x]
-        for( let i of range(x.length) ) {
+        for( let i=0; i < x.length; i++ ) {
             x[i] = -trunc_log((high[i] - x[i])/(x[i] - low[i]));
         }
         return x;
     }
     function translate_outof(x) {
         //x = [float(i) for i in x]
-        for( let i of range(x.length) ) {
+        for( let i=0; i < x.length; i++ ) {
             x[i] = (low[i] + (high[i] - low[i])/(1.0 + trunc_exp(-x[i])));
         }
         return x;
@@ -1837,7 +1845,7 @@ export class OscillationError extends Error {
 export class UnconvergedError extends Error {
     /*Error raised when maxiter has been reached in an optimization problem.*/
     toString() {
-        return (_pyjs.stringInterpolate( 'UnconvergedError("Failed to converge; maxiter (%d) reached, value=%g, error %g)"',[this.maxiter, this.point, this.err] ));
+        return (stringInterpolate( 'UnconvergedError("Failed to converge; maxiter (%d) reached, value=%g, error %g)"',[this.maxiter, this.point, this.err] ));
     }
     constructor( message, iterations=null, err=null, point=null) {
         super(message);
@@ -1875,7 +1883,7 @@ export class DiscontinuityError extends Error {
     discontinuity.*/
 }
 export function damping_maintain_sign(x, step, damping=1.0, factor=0.5) {
-    if( _pyjs.isInstance(x, list) ) {
+    if( isInstance(x, list) ) {
         return range(x.length).map( i =>damping_maintain_sign(x[i], step[i], damping, factor) );
     }
     let positive = x > 0.0;
@@ -1890,14 +1898,14 @@ export function make_damp_initial(steps=5, damping=1.0, ...args) {
     function damping_func(x, step, damping=damping, ...args) {
         if( steps_holder[0] <= 0 ) {
             // Do not dampen at all
-            if( _pyjs.isInstance(x, list) ) {
-                return _pyjs.listZip(x, step).map( ( [ xi, dxi ] ) =>xi + dxi );
+            if( isInstance(x, list) ) {
+                return listZip(x, step).map( ( [ xi, dxi ] ) =>xi + dxi );
             }
             return x + step;
         } else {
             steps_holder[0] -= 1;
-            if( _pyjs.isInstance(x, list) ) {
-                return _pyjs.listZip(x, step).map( ( [ xi, dxi ] ) =>xi + dxi*damping );
+            if( isInstance(x, list) ) {
+                return listZip(x, step).map( ( [ xi, dxi ] ) =>xi + dxi*damping );
             }
             return x + step*damping;
         }
@@ -1909,12 +1917,13 @@ export function oscillation_checking_wrapper(f, minimum_progress=0.3,
                                  good_err=null) {
     let checker = oscillation_checker( {minimum_progress: minimum_progress,
                                  both_sides: both_sides, good_err: good_err });
-    let wraps = my_wraps();
+    // JS: not sure what this is about
+    // let wraps = my_wraps();
     /* @wraps(f) DECORATOR */
     function wrapper(x, args, ...kwargs) {
         // let err_test = err = f(x, args, ...kwargs);
         let err_test = err = f(x);
-        if( !_pyjs.isInstance(err, [float, int, complex]) ) {
+        if( !isInstance(err, [float, int, complex]) ) {
             let err_test = err[0];
         }
         try {
@@ -2075,7 +2084,7 @@ export function bisect(f, a, b, args=[], xtol=1e-12, rtol=2.220446049250313e-16,
       //      if dy_dx > dy_dx_limit:
       //          raise DiscontinuityError("Discontinuity detected")
     }
-    throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge after %d iterations", [maxiter ] ) );
+    throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge after %d iterations", [maxiter ] ) );
 }
 export function ridder(f, a, b, args=[], xtol=_xtol, rtol=_rtol, maxiter=_iter,
               full_output=false, disp=true) {
@@ -2116,7 +2125,7 @@ export function ridder(f, a, b, args=[], xtol=_xtol, rtol=_rtol, maxiter=_iter,
             return xn;
         }
     }
-    throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge after %d iterations", [maxiter ] ) ); // numba: delete
+    throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge after %d iterations", [maxiter ] ) ); // numba: delete
 }
 //    raise UnconvergedError("Failed to converge") # numba: uncomment
 export function brenth({f, xa, xb, args=[],
@@ -2218,7 +2227,7 @@ export function brenth({f, xa, xb, args=[],
         // fcur = f(xcur, args, ...kwargs);
         fcur = f(xcur);
     }
-    throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge after %d iterations", [maxiter ] ) );
+    throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge after %d iterations", [maxiter ] ) );
 }
 export function secant({func, x0, args=[], maxiter=100, low=null, high=null, damping=1.0,
            xtol=1.48e-8, ytol=null, x1=null, require_eval=false,
@@ -2416,7 +2425,7 @@ export function newton({func, x0, fprime=null, args=[], tol=null, maxiter=100,
             if( ytol === null || Math.abs(fval) < ytol ) {
                 return p0;
             } else {
-                throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Derivative became zero; maxiter (%d) reached, value=%f ",[maxiter, p0] ) );
+                throw new Error( 'UnconvergedError',stringInterpolate( "Derivative became zero; maxiter (%d) reached, value=%f ",[maxiter, p0] ) );
             }
         }
         if( bisection ) {
@@ -2465,7 +2474,7 @@ export function newton({func, x0, fprime=null, args=[], tol=null, maxiter=100,
                 if( Math.abs(fval) < ytol ) {
                     return low;
                 } else {
-                    throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ", [maxiter, p] ) );
+                    throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ", [maxiter, p] ) );
                 }
                 // Stuck - not going to converge, hammering the boundary. Check ytol
             }
@@ -2477,7 +2486,7 @@ export function newton({func, x0, fprime=null, args=[], tol=null, maxiter=100,
                 if( Math.abs(fval) < ytol ) {
                     return high;
                 } else {
-                    throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ", [maxiter, p] ) );
+                    throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ", [maxiter, p] ) );
                 }
             }
             p = high;
@@ -2513,7 +2522,7 @@ export function newton({func, x0, fprime=null, args=[], tol=null, maxiter=100,
     //                  damping=damping,
     //                  xtol=xtol, ytol=ytol, kwargs=kwargs)
     //
-    throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ",[maxiter, p] ) );
+    throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ",[maxiter, p] ) );
 }
 export function halley({func, x0, args=[], maxiter=100, low=null, high=null, damping=1.0, ytol=null, xtol=1.48e-8, require_eval=false, damping_func=null, bisection=false, max_bound_hits=4, kwargs={}, max_2nd_ratio=1.5}) {
     let p0 = 1.0*x0;
@@ -2530,7 +2539,7 @@ export function halley({func, x0, args=[], maxiter=100, low=null, high=null, dam
             if( ytol === null || Math.abs(fval) < ytol ) {
                 return p0;
             } else {
-                throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Derivative became zero; maxiter (%d) reached, value=%f ",[maxiter, p0] ) );
+                throw new Error( 'UnconvergedError',stringInterpolate( "Derivative became zero; maxiter (%d) reached, value=%f ",[maxiter, p0] ) );
             }
         }
         if( bisection ) {
@@ -2569,7 +2578,7 @@ export function halley({func, x0, args=[], maxiter=100, low=null, high=null, dam
                 if( Math.abs(fval) < ytol ) {
                     return low;
                 } else {
-                    throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ", [maxiter, p] ) );
+                    throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ", [maxiter, p] ) );
                 }
                 // Stuck - not going to converge, hammering the boundary. Check ytol
             }
@@ -2581,7 +2590,7 @@ export function halley({func, x0, args=[], maxiter=100, low=null, high=null, dam
                 if( Math.abs(fval) < ytol ) {
                     return high;
                 } else {
-                    throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ", [maxiter, p] ) );
+                    throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ", [maxiter, p] ) );
                 }
             }
             p = high;
@@ -2614,7 +2623,7 @@ export function halley({func, x0, args=[], maxiter=100, low=null, high=null, dam
         }
         p0 = p;
     }
-    throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ",[maxiter, p] ) );
+    throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%f ",[maxiter, p] ) );
 }
 export function newton_err(F) {
     let err = sum( F.map( i =>Math.abs(i) ));
@@ -2740,7 +2749,7 @@ export function newton_system(f, x0, jac, xtol=null, ytol=null, maxiter=100, dam
         let dx = solve_func(j, fcur.map( v =>-v )); // numba: delete
         if( damping_func === null ) {
             //x = x + dx*damping # numba: uncomment
-            x = _pyjs.listZip(x, dx).map( ( [ xi, dxi ] ) =>xi + dxi*damping ); // numba: delete
+            x = listZip(x, dx).map( ( [ xi, dxi ] ) =>xi + dxi*damping ); // numba: delete
         } else {
             x = damping_func(x, dx, damping, ...args);
         }
@@ -2804,7 +2813,7 @@ export function newton_minimize(f, x0, jac, hess, xtol=null, ytol=null, maxiter=
     while( iter < maxiter ) {
         let dx = py_solve(h, j.map( v =>-v ));
         if( damping_func === null ) {
-            x = _pyjs.listZip(x, dx).map( ( [ xi, dxi ] ) =>xi + dxi*damping );
+            x = listZip(x, dx).map( ( [ xi, dxi ] ) =>xi + dxi*damping );
         } else {
             x = damping_func(x, dx, damping);
         }
@@ -2827,10 +2836,10 @@ export function newton_minimize(f, x0, jac, hess, xtol=null, ytol=null, maxiter=
         }
     }
     if( xtol !== null && norm2(j) > xtol ) {
-        throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%s ",[maxiter, x] ) );
+        throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%s ",[maxiter, x] ) );
     }
     if( ytol !== null && err(j) > ytol ) {
-        throw new Error( 'UnconvergedError',_pyjs.stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%s ",[maxiter, x] ) );
+        throw new Error( 'UnconvergedError',stringInterpolate( "Failed to converge; maxiter (%d) reached, value=%s ",[maxiter, x] ) );
     }
     return [x, iter];
 }
@@ -2926,7 +2935,7 @@ export function py_splev(x, tck, ext=0, t=null, c=null, k=null) {
     let te = t[nk1 ];  // -1 to get right index; + 1 - 1
     let l = k1;
     let l1 = l + 1;
-    for( let i of range(0, m) ) { // m is only 1
+    for( let i=0; i < m; i++ ) { // m is only 1
         // i only used in loop for 1
         let arg = x[i];
         if( arg < tb || arg > te ) {
@@ -2956,7 +2965,7 @@ export function py_splev(x, tck, ext=0, t=null, c=null, k=null) {
         fpbspl(t, n, k, arg, l, h, hh);
         let sp = 0.0E0;
         let ll = l - k1;
-        for( let j of range(0, k1) ) {
+        for( let j=0; j < k1; j++ ) {
             ll = ll + 1;
             sp = sp + c[ll-1]*h[j]; // -1 to get right index
         }
@@ -2983,7 +2992,7 @@ export function fpbspl(t, n, k, x, l, h, hh) {
     All arrays are 1d! Optimized the assignment and order and so on.
     */
     h[0] = 1.0;
-    for( let j of range(1, k + 1) ) {
+    for( let j=1; j < k + 1; j++ ) {
         hh.splice(0,j,...h.slice(0,j));
         h[0] = 0.0;
         for( let i; i<j; i++ ) {
@@ -3017,7 +3026,7 @@ export function init_w(t, k, x, lx, w) {
         }
         fpbspl(t, n, k, arg, l1, h, hh);
         lx[i] = l1 - k - 1;
-        for( let j of range(k + 1) ) {
+        for( let j=0; j < k + 1; j++ ) {
             w[i][j] = h[j];
         }
     }
@@ -3250,7 +3259,7 @@ export function fixed_quad_Gauss_Kronrod(f, a, b, k_points, k_weights, l_weights
         //fx_gk[i] =
         let y = f(x, ...args);
         val_gauss_kronrod += fact*y*k_weights[i];
-        if( _pyjs.stringInterpolate( i, [2 ] ) ) {
+        if( stringInterpolate( i, [2 ] ) ) {
             //fx_gl[k] = y
             val_gauss_legendre += fact*y*l_weights[k];
             k += 1;
@@ -3324,7 +3333,7 @@ export function py_factorial(n) {
         throw new Error( 'ValueError',"Positive values only" );
     }
     let factorial = 1;
-    for( let i of range(2, n + 1) ) {
+    for( let i=2; i < n + 1; i++ ) {
         factorial *= i;
     }
     return factorial;

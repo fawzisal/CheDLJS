@@ -1,3 +1,4 @@
+import { stringInterpolate } from './_pyjs.js';
 import { degrees, radians } from './fluids.helpers.js';
 import { deg2rad, rad2deg } from './fluids.constants.js';
 import { sincos } from './fluids.numerics.js';
@@ -109,7 +110,7 @@ export function heliocentric_longitude(jme) {
     l5 = -0.9999987317275395;
     let l_rad = (jme*(jme*(jme*(jme*(jme*l5 + l4) + l3) + l2) + l1) + l0)*1E-8;
     let l = rad2deg*l_rad;
-    return _pyjs.stringInterpolate( l, [ 360 ] );
+    return stringInterpolate( l, [ 360 ] );
 }
 export function heliocentric_latitude(jme) {
     let b0 = 0.0;
@@ -164,7 +165,7 @@ export function heliocentric_radius_vector(jme) {
 }
 export function geocentric_longitude(heliocentric_longitude) {
     let theta = heliocentric_longitude + 180.0;
-    return _pyjs.stringInterpolate( theta, [ 360 ] );
+    return stringInterpolate( theta, [ 360 ] );
 }
 export function geocentric_latitude(heliocentric_latitude) {
     let beta = -heliocentric_latitude;
@@ -244,7 +245,7 @@ export function longitude_obliquity_nutation({julian_ephemeris_century, x0, x1, 
 //        delta_eps_sum += t0*Math.cos(arg)
     let delta_psi = delta_psi_sum/36000000.0;
     let delta_eps = delta_eps_sum/36000000.0;
-    let res = [0.0]*2;
+    let res = Array(2).fill(0);
     res[0] = delta_psi;
     res[1] = delta_eps;
     return res;
@@ -310,7 +311,7 @@ export function mean_sidereal_time({julian_day, julian_century}) {
     let v0 = (280.46061837 + 360.98564736629*(julian_day - 2451545.0)
           + 0.000387933*julian_century2
           - julian_century2*julian_century/38710000.0);
-    return _pyjs.stringInterpolate( v0, [ 360.0 ] );
+    return stringInterpolate( v0, [ 360.0 ] );
 }
 export function apparent_sidereal_time({mean_sidereal_time, longitude_nutation,
                            true_ecliptic_obliquity}) {
@@ -326,7 +327,7 @@ export function geocentric_sun_right_ascension({apparent_sun_longitude,
            * Math.sin(deg2rad*true_ecliptic_obliquity));
     let alpha = degrees(Math.atan2(num, Math.cos(
         deg2rad*apparent_sun_longitude)));
-    return _pyjs.stringInterpolate( alpha, [ 360 ] );
+    return stringInterpolate( alpha, [ 360 ] );
 }
 export function geocentric_sun_declination({apparent_sun_longitude, true_ecliptic_obliquity,
                                geocentric_latitude}) {
@@ -340,7 +341,7 @@ export function geocentric_sun_declination({apparent_sun_longitude, true_eclipti
 export function local_hour_angle({apparent_sidereal_time, observer_longitude,
                      sun_right_ascension}) {
     let H = apparent_sidereal_time + observer_longitude - sun_right_ascension;
-    return _pyjs.stringInterpolate( H, [ 360 ] );
+    return stringInterpolate( H, [ 360 ] );
 }
 export function equatorial_horizontal_parallax(earth_radius_vector) {
     return 8.794 / (3600.0 * earth_radius_vector);
@@ -439,11 +440,11 @@ export function topocentric_astronomers_azimuth({topocentric_local_hour_angle,
              - Math.tan(deg2rad*topocentric_sun_declination)
              * Math.cos(deg2rad*observer_latitude));
     let gamma = degrees(Math.atan2(num, denom));
-    return _pyjs.stringInterpolate( gamma, [ 360.0 ] );
+    return stringInterpolate( gamma, [ 360.0 ] );
 }
 export function topocentric_azimuth_angle(topocentric_astronomers_azimuth) {
     let phi = topocentric_astronomers_azimuth + 180.0;
-    return _pyjs.stringInterpolate( phi, [ 360.0 ] );
+    return stringInterpolate( phi, [ 360.0 ] );
 }
 export function sun_mean_longitude(julian_ephemeris_millennium) {
     let M = julian_ephemeris_millennium*(julian_ephemeris_millennium*(
@@ -459,7 +460,7 @@ export function equation_of_time({sun_mean_longitude, geocentric_sun_right_ascen
     let E = (sun_mean_longitude - 0.0057183 - geocentric_sun_right_ascension +
          longitude_nutation * term);
     // limit between 0 and 360
-    E = _pyjs.stringInterpolate( E, [ 360 ] );
+    E = stringInterpolate( E, [ 360 ] );
     // convert to minutes
     E *= 4.0;
     let greater = E > 20.0;
@@ -546,7 +547,7 @@ try {
             let atmos_refract = loc_args[6];
             let sst = loc_args[7];
             let esd = loc_args[8];
-            for( let i of range(len(unixtime)) ) {
+            for( let i=0; i < len(unixtime); i++ ) {
                 let utime = unixtime[i];
                 let jd = julian_day(utime);
                 let jde = julian_ephemeris_day(jd, delta_t);
@@ -626,7 +627,7 @@ try {
                 let unixtime = unixtime.astype(np.float64);
             }
             if( ulength < numthreads ) {
-                warnings.warn(_pyjs.stringInterpolate( 'The number of threads is more than the length of '
+                warnings.warn(stringInterpolate( 'The number of threads is more than the length of '
                               'the time array. Only using %s threads.', [(length) ] ));
                 let numthreads = ulength;
             }
@@ -651,7 +652,7 @@ try {
     
 }
 export function transit_sunrise_sunset({dates, lat, lon, delta_t}) {
-    let condition = (_pyjs.stringInterpolate( dates, [ 86400 ] )) !== 0.0;
+    let condition = (stringInterpolate( dates, [ 86400 ] )) !== 0.0;
     if( condition ) {
         throw new Error( 'ValueError','Input dates must be at 00:00 UTC' );
     }
@@ -669,60 +670,60 @@ export function transit_sunrise_sunset({dates, lat, lon, delta_t}) {
     let cos_arg = ((-0.014543315936696236 - Math.sin(radians(lat)) // Math.sin(radians(-0.8333)) = -0.0145...
                * Math.sin(radians(ttday0_res[2]))) /
                (Math.cos(radians(lat)) * Math.cos(radians(ttday0_res[2]))));
-    if( abs(cos_arg) > 1 ) {
+    if( Math.abs(cos_arg) > 1 ) {
         cos_arg = nan;
     }
-    let H0 = _pyjs.stringInterpolate( degrees(Math.acos(cos_arg)), [ 180 ] );
-    let m = [0.0]*3;
-    m[0] = _pyjs.stringInterpolate( m0, [ 1 ] );
+    let H0 = stringInterpolate( degrees(Math.acos(cos_arg)), [ 180 ] );
+    let m = Array(3).fill(0);
+    m[0] = stringInterpolate( m0, [ 1 ] );
     m[1] = (m[0] - H0 / 360.0);
     m[2] = (m[0] + H0 / 360.0);
     // need to account for fractions of day that may be the next or previous
     // day in UTC
     let add_a_day = m[2] >= 1;
     let sub_a_day = m[1] < 0;
-    m[1] = _pyjs.stringInterpolate( m[1], [ 1 ] );
-    m[2] = _pyjs.stringInterpolate( m[2], [ 1 ] );
-    let vs = [0.0]*3;
+    m[1] = stringInterpolate( m[1], [ 1 ] );
+    m[2] = stringInterpolate( m[2], [ 1 ] );
+    let vs = Array(3).fill(0);
     for( let i; i<3; i++ ) {
         vs[i] = v + 360.985647*m[i];
     }
-    let n = [0.0]*3;
+    let n = Array(3).fill(0);
     for( let i; i<3; i++ ) {
         n[i] = m[i] + delta_t / 86400.0;
     }
     let a = ttday0_res[1] - ttdayn1_res[1];
-    if( abs(a) > 2 ) {
-        a = _pyjs.stringInterpolate( a, [1 ] );
+    if( Math.abs(a) > 2 ) {
+        a = stringInterpolate( a, [1 ] );
     }
     let ap = ttday0_res[2] - ttdayn1_res[2];
-    if( (abs(ap) > 2) ) {
-        ap = _pyjs.stringInterpolate( ap, [ 1 ] );
+    if( (Math.abs(ap) > 2) ) {
+        ap = stringInterpolate( ap, [ 1 ] );
     }
     let b = ttdayp1_res[1] - ttday0_res[1];
-    if( (abs(b) > 2) ) {
-        b = _pyjs.stringInterpolate( b, [ 1 ] );
+    if( (Math.abs(b) > 2) ) {
+        b = stringInterpolate( b, [ 1 ] );
     }
     let bp = ttdayp1_res[2] - ttday0_res[2];
-    if( abs(bp) > 2 ) {
-        bp = _pyjs.stringInterpolate( bp, [ 1 ] );
+    if( Math.abs(bp) > 2 ) {
+        bp = stringInterpolate( bp, [ 1 ] );
     }
     let c = b - a;
     let cp = bp - ap;
-    let alpha_prime = [0.0]*3;
-    let delta_prime = [0.0]*3;
-    let Hp = [0.0]*3;
+    let alpha_prime = Array(3).fill(0);
+    let delta_prime = Array(3).fill(0);
+    let Hp = Array(3).fill(0);
     for( let i; i<3; i++ ) {
         alpha_prime[i] = ttday0_res[1] + (n[i] * (a + b + c * n[i]))*0.5;
         delta_prime[i] = ttday0_res[2] + (n[i] * (ap + bp + cp * n[i]))*0.5;
-        Hp[i] = _pyjs.stringInterpolate( (vs[i] + lon - alpha_prime[i]), [ 360 ] );
+        Hp[i] = stringInterpolate( (vs[i] + lon - alpha_prime[i]), [ 360 ] );
         if( Hp[i] >= 180.0 ) {
             Hp[i] = Hp[i] - 360.0;
         }
     }
     let x1 = Math.sin(radians(lat));
     let x2 = Math.cos(radians(lat));
-    let h = [0.0]*3;
+    let h = Array(3).fill(0);
     for( let i; i<3; i++ ) {
         h[i] = degrees(Math.asin(x1*Math.sin(radians(delta_prime[i])) + x2 * Math.cos(radians(delta_prime[i])) * Math.cos(radians(Hp[i]))));
     }

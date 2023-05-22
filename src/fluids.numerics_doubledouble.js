@@ -4,6 +4,7 @@ let __all__ = ['add_dd', 'mul_noerrors_dd', 'mul_dd', 'div_dd', 'sqrt_dd',
            'cbrt_dd', 'cube_dd', 'cbrt_explicit_dd', 'eq_dd', 'neq_dd',
            'lt_dd', 'gt_dd', 'le_dd', 'ge_dd', 'intpow_dd', 'exp_dd',
            'log_dd', 'pow_dd'];
+import { stringInterpolate } from './_pyjs.js';
 
 let third = 1/3.0;
 export function eq_dd({r0, e0, r1, e1}) {
@@ -135,8 +136,9 @@ export function intpow_dd({r, e, n}) {
     a double-double number `r` and `e` to the
     `n`. (r+e)^n.
     */
+    let br, be, rr, re;
     [br, be] = [r, e];
-    let i = abs(n);
+    let i = Math.abs(n);
     [rr, re] = [1.0, 0.0];
     while( true ) {
         if( i & 1 === 1 ) {
@@ -156,18 +158,18 @@ export function intpow_dd({r, e, n}) {
 
 let dd_exp_coeffs = [156, 12012, 600600, 21621600, 588107520, 12350257920, 201132771840, 2514159648000, 23465490048000, 154872234316800, 647647525324800, 1295295050649600];
 export function exp_dd({r, e}) {
-    let n = int(round(r));
+    let n = ~~Math.round(r);
     let [xr, xe] = add_dd(r, e, -n, 0);
     let [ur, ue] = add_dd(xr, xe, dd_exp_coeffs[0], 0);
 
-    for( let i of range(1, 12) ) {
+    for( let i=1; i < 12; i++ ) {
         [ur, ue] = mul_dd(xr, xe, ur, ue);
         [ur, ue] = add_dd(ur, ue, dd_exp_coeffs[i], 0);
     }
 
     let [vr, ve] = add_dd(xr, xe, -dd_exp_coeffs[0], 0);
     let f = 1.0;
-    for( let i of range(1, 12) ) {
+    for( let i=1; i < 12; i++ ) {
         [vr, ve] = mul_dd(xr, xe, vr, ve);
         [vr, ve] = add_dd(vr, ve, f*dd_exp_coeffs[i], 0);
         f *= -1.0;
@@ -194,7 +196,7 @@ export function log_dd({r, e}) {
 
 export function pow_dd({r, e, nr, ne}) {
     /*Compute the power*/
-    if( ne === 0.0 && (_pyjs.stringInterpolate( nr, [1 ] )) === 0 ) {
+    if( ne === 0.0 && (stringInterpolate( nr, [1 ] )) === 0 ) {
         return intpow_dd(r, e, nr);
     }
     let [tmpr, tmpe] = log_dd(r, e);
@@ -227,9 +229,10 @@ export function mul_imag_noerrors_dd({xrr, xcr, yrr, ycr}) {
 }
 
 export function sqrt_imag_dd({xrr, xre, xcr, xce}) {
+    let zrr, zre;
     if( xcr === 0.0 ) {
         if( xrr > 0.0 ) {
-            let [zrr, zre] = sqrt_dd(xrr, xre);
+            [zrr, zre] = sqrt_dd(xrr, xre);
             return [zrr, zre, 0.0, 0.0];
         }
         [zrr, zre] = sqrt_dd(-xrr, -xre);

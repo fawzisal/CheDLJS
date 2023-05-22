@@ -124,7 +124,7 @@ export function _Stichlmair_flood_f_and_jac({inputs, Vl, rhog, rhol, mug, voidag
              x0*(430.125*x36*x41*x5 - 15.4166666666667*x38*x41*x5*(x30 - 4.0) - 1.0),
              -1.85*x16*x29*x40*x5/x26,
              3285600.0*x42*(-x30 + 4.0)*x38*x38- 91668240.0*x42*x36*x36 - 2.0*x32/(dP_irr*x6)];
-    let err = [0.0]*2;
+    let err = Array(2).fill(0);
     err[0] = F1;
     err[1] = F2;
     let jac = [[dF1_dVg, dF2_dVg], [dF1_dP_irr, dF2_dP_irr]];// numba: delete
@@ -132,7 +132,7 @@ export function _Stichlmair_flood_f_and_jac({inputs, Vl, rhog, rhol, mug, voidag
 }
 export function Stichlmair_flood({Vl, rhog, rhol, mug, voidage, specific_area, C1, C2, C3,
                      H=1.0}) {
-    let guess = [0.0]*2;
+    let guess = Array(2).fill(0);
     guess[0] = Vl*100.0;
     guess[1] = 1000.0;
     return newton_system(_Stichlmair_flood_f_and_jac, { x0: guess, jac: true,

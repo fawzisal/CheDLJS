@@ -1,5 +1,6 @@
 import * as nrlmsis_header from './fluids.nrlmsise00_nrlmsise_00_header.js';
-import * as nrlmsis_data from './fluids.nrlmsise00_nrlmsise_00_data.js';
+import * as data from './fluids.nrlmsise00_nrlmsise_00_data.js';
+import { float } from './_pyjs.js';
 let __all__ = ['gtd7'];
 //
 let gsurf = [0.0];
@@ -12,9 +13,9 @@ let dm32 = 0.0;
 let dm40 = 0.0;
 let dm01 = 0.0;
 let dm14 = 0.0;
-let meso_tn1 = [0.0]*5;
-let meso_tn2 = [0.0]*4;
-let meso_tn3 = [0.0]*5;
+let meso_tn1 = Array(5).fill(0);
+let meso_tn2 = Array(4).fill(0);
+let meso_tn3 = Array(5).fill(0);
 let meso_tgn1 = [0.0, 0.0];
 let meso_tgn2 = [0.0, 0.0];
 let meso_tgn3 = [0.0, 0.0];
@@ -31,7 +32,7 @@ let s2tloc = 0.0;
 let s3tloc = 0.0;
 let c3tloc = 0.0;
 let apdf = 0.0;
-let apt = [0.0]*4;
+let apt = Array(4).fill(0);
 //since rgas is used eerywehre usignthe same variable, ill make it glboal
 //rgas = 831.44621
 //rgas = 831.4
@@ -147,7 +148,7 @@ export function splint({xa, ya, y2a, n, x, y}) {
     let klo = 0;
     let khi = n-1;
     while(((khi-klo)>1) ) {
-        let k=int((khi+klo)/2);
+        let k=~~((khi+klo)/2);
         if( (xa[k]>x) ) {
             khi = k;
         } else {
@@ -171,15 +172,16 @@ export function spline({x, y, n, yp1, ypn, y2}) {
         y2[0]=-0.5;
         u[0]=(3.0/(x[1]-x[0]))*((y[1]-y[0])/(x[1]-x[0])-yp1);
     }
-    for( let i of range(1, n-1) ) {
+    for( let i=1; i < n-1; i++ ) {
         let sig = (x[i]-x[i-1])/(x[i+1] - x[i-1]);
         let p = sig * y2[i-1] + 2.0;
         y2[i] = (sig - 1.0) / p;
         u[i] = (6.0 * ((y[i+1] - y[i])/(x[i+1] - x[i]) -(y[i] - y[i-1]) / (x[i] - x[i-1]))/(x[i+1] - x[i-1]) - sig * u[i-1])/p;
     }
+    let qn, un;
     if( (ypn>0.99E30) ) { // pragma: no cover
-        let qn = 0;
-        let un = 0;
+        qn = 0;
+        un = 0;
     } else {
         qn = 0.5;
         un = (3.0 / (x[n-1] - x[n-2])) * (ypn - (y[n-1] - y[n-2])/(x[n-1] - x[n-2]));
@@ -201,9 +203,9 @@ export function zeta({zz, zl}) {
     return ((zz-zl)*(re_nrlmsise_00[0]+zl)/(re_nrlmsise_00[0]+zz));    //re is the global variable
 }
 export function densm({alt, d0, xm, tz, mn3, zn3, tn3, tgn3, mn2, zn2, tn2, tgn2}) {
-    let xs = [0.0]*10;
-    let ys = [0.0]*10;
-    let y2out = [0.0]*10;
+    let xs = Array(10).fill(0);
+    let ys = Array(10).fill(0);
+    let y2out = Array(10).fill(0);
     let rgas = 831.4;
     //rgas = 831.44621    #maybe make this a global constant?
     let densm_tmp=d0;
@@ -215,8 +217,9 @@ export function densm({alt, d0, xm, tz, mn3, zn3, tn3, tgn3, mn2, zn2, tn2, tgn2
         }
     //
     }
+    let z;
     if( (alt>zn2[mn2-1]) ) {
-        let z=alt;
+        z=alt;
     } else {
         z=zn2[mn2-1];
     }
@@ -241,14 +244,15 @@ export function densm({alt, d0, xm, tz, mn3, zn3, tn3, tgn3, mn2, zn2, tn2, tgn2
     splint (xs, ys, y2out, mn, x, y);
     //
     tz[0] = 1.0 / y[0];
+    let glb, gamm, yi, expl;
     if( (xm!==0.0) ) {
         //
-        let glb = gsurf[0] / (Math.pow((1.0 + z1/re_nrlmsise_00[0]),2.0));
-        let gamm = xm * glb * zgdif / rgas;
+        glb = gsurf[0] / (Math.pow((1.0 + z1/re_nrlmsise_00[0]),2.0));
+        gamm = xm * glb * zgdif / rgas;
         //
-        let yi = [0.0];
+        yi = [0.0];
         splini(xs, ys, y2out, mn, x, yi);
-        let expl=gamm*yi[0];
+        expl=gamm*yi[0];
         if( (expl>50.0) ) { // pragma: no cover
             expl=50.0;
         }
@@ -307,13 +311,14 @@ export function densu({alt, dlb, tinf, tlb, xm, alpha, tz, zlb, s2, mn1, zn1, tn
     let rgas = 831.4;
     //rgas = 831.44621    #maybe make this a global constant?
     let densu_temp = 1.0;
-    let xs = [0.0]*5;
-    let ys = [0.0]*5;
-    let y2out = [0.0]*5;
+    let xs = Array(5).fill(0);
+    let ys = Array(5).fill(0);
+    let y2out = Array(5).fill(0);
     //
     let za=zn1[0];
+    let z;
     if( (alt>za) ) {
-        let z=alt;
+        z=alt;
     } else {
         z=za;
     }
@@ -324,6 +329,7 @@ export function densu({alt, dlb, tinf, tlb, xm, alpha, tz, zlb, s2, mn1, zn1, tn
     let ta = tt;
     tz[0] = tt;
     densu_temp = tz[0];
+    let mn, z1, t1, zgdif, x;
     if( (alt<za) ) {
         ///* calculate temperature below ZA
         // * temperature gradient at ZA from Bates profile */
@@ -335,14 +341,14 @@ export function densu({alt, dlb, tinf, tlb, xm, alpha, tz, zlb, s2, mn1, zn1, tn
         } else {
             z=zn1[mn1-1];
         }
-        let mn=mn1;
-        let z1=zn1[0];
+        mn=mn1;
+        z1=zn1[0];
         let z2=zn1[mn-1];
-        let t1=tn1[0];
+        t1=tn1[0];
         let t2=tn1[mn-1];
         //
         let zg = zeta (z, z1);
-        let zgdif = zeta(z2, z1);
+        zgdif = zeta(z2, z1);
         //
         for( let k; k<mn; k++ ) {
             xs[k] = zeta(zn1[k], z1) / zgdif;
@@ -353,7 +359,7 @@ export function densu({alt, dlb, tinf, tlb, xm, alpha, tz, zlb, s2, mn1, zn1, tn
         let yd2 = -tgn1[1] / (t2*t2) * zgdif * Math.pow(((re_nrlmsise_00[0]+z2)/(re_nrlmsise_00[0]+z1)),2.0);
         //
         spline (xs, ys, mn, yd1, yd2, y2out);
-        let x = zg / zgdif;
+        x = zg / zgdif;
         let y = [0.0];
         splint (xs, ys, y2out, mn, x, y);
         //
@@ -404,15 +410,14 @@ export function sg0({ex, p, ap}) {
     return (g0_nrlmsise00(ap[1], p) + (g0_nrlmsise00(ap[2], p)*ex + g0_nrlmsise00(ap[3], p)*ex*ex +  g0_nrlmsise00(ap[4], p)*Math.pow(ex, 3.0) + (g0_nrlmsise00(ap[5], p)*Math.pow(ex, 4.0) +  g0_nrlmsise00(ap[6], p)*Math.pow(ex, 12.0))*(1.0 - Math.pow(ex, 8.0))/(1.0 - ex)))/sumex(ex);
 }
 export function globe7({p, Input, flags}) {
-    let t = [0]*15;  //modified this, there was a for loop that did this
+    let t = Array(15).fill(0);  //modified this, there was a for loop that did this
     let sw9 = 1;
     let sr = 7.2722E-5;
     let dgtr = 1.74533E-2;
     let dr = 1.72142E-2;
     let hr = 0.2618;
     let tloc = Input.lst;
-    //for j in range(14):
-    //    t[j] = 0
+    //for (let j=0; j<14; j++) { t[j] = 0; }
     if((flags.sw[9] > 0) ) {
         sw9 = 1;
     } else if((flags.sw[9] < 0) ) { // pragma: no cover
@@ -548,13 +553,13 @@ export function globe7({p, Input, flags}) {
     }
     let tinf = p[30];
     for( let i; i<14; i++ ) {
-        tinf = tinf + abs(flags.sw[i+1])*t[i];
+        tinf = tinf + Math.abs(flags.sw[i+1])*t[i];
     }
     return tinf;
 }
 export function glob7s({p, Input, flags}) {
     let pset = 2.0;
-    let t = [0.0]*14;
+    let t = Array(14).fill(0);
     let dr=1.72142E-2;
     let dgtr=1.74533E-2;
     //
@@ -608,7 +613,7 @@ export function glob7s({p, Input, flags}) {
     }
     let tt=0;
     for( let i; i<14; i++ ) {
-        tt+=abs(flags.sw[i+1])*t[i];
+        tt+=Math.abs(flags.sw[i+1])*t[i];
     }
     return tt;
 }
@@ -618,7 +623,7 @@ export function gtd7({Input, flags, output}) {
     let mn2 = 4;
     let zn2 = [72.5,55.0,45.0,32.5];
     let zmix = 62.5;
-    let soutput = nrlmsise_output();
+    let soutput = nrlmsis_header.nrlmsise_output();
     tselec(flags);
     //
     let xlat=Input.g_lat;
@@ -626,10 +631,11 @@ export function gtd7({Input, flags, output}) {
         let xlat=45.0;
     }
     glatf(xlat, gsurf, re_nrlmsise_00);
-    let xmm = pdm[2][4];
+    let xmm = data.pdm[2][4];
     //
+    let altt;
     if( (Input.alt>zn2[0]) ) {
-        let altt=Input.alt;
+        altt=Input.alt;
     } else {
         altt=zn2[0];
     }
@@ -638,8 +644,9 @@ export function gtd7({Input, flags, output}) {
     gts7(Input, flags, soutput);
     altt=Input.alt;
     Input.alt=tmp;
+    let dm28m;
     if( (flags.sw[0]) ) { // pragma: no cover  #
-        let dm28m= dm28*1.0E6;
+        dm28m= dm28*1.0E6;
     } else {
         dm28m = dm28;
     }
@@ -653,21 +660,21 @@ export function gtd7({Input, flags, output}) {
     }
     meso_tgn2[0]=meso_tgn1[1];
     meso_tn2[0]=meso_tn1[4];
-    meso_tn2[1]=pma[0][0]*pavgm[0]/(1.0-flags.sw[20]*glob7s(pma[0], Input, flags));
-    meso_tn2[2]=pma[1][0]*pavgm[1]/(1.0-flags.sw[20]*glob7s(pma[1], Input, flags));
-    meso_tn2[3]=pma[2][0]*pavgm[2]/(1.0-flags.sw[20]*flags.sw[22]*glob7s(pma[2], Input, flags));
-    meso_tgn2[1]=pavgm[8]*pma[9][0]*(1.0+flags.sw[20]*flags.sw[22]*glob7s(pma[9], Input, flags))*meso_tn2[3]*meso_tn2[3]/(Math.pow((pma[2][0]*pavgm[2]),2.0));
+    meso_tn2[1]=data.pma[0][0]*data.pavgm[0]/(1.0-flags.sw[20]*glob7s(data.pma[0], Input, flags));
+    meso_tn2[2]=data.pma[1][0]*data.pavgm[1]/(1.0-flags.sw[20]*glob7s(data.pma[1], Input, flags));
+    meso_tn2[3]=data.pma[2][0]*data.pavgm[2]/(1.0-flags.sw[20]*flags.sw[22]*glob7s(data.pma[2], Input, flags));
+    meso_tgn2[1]=data.pavgm[8]*data.pma[9][0]*(1.0+flags.sw[20]*flags.sw[22]*glob7s(data.pma[9], Input, flags))*meso_tn2[3]*meso_tn2[3]/(Math.pow((data.pma[2][0]*data.pavgm[2]),2.0));
     meso_tn3[0]=meso_tn2[3];
     if( (Input.alt<zn3[0]) ) {
 /*       LOWER STRATOSPHERE AND TROPOSPHERE (below zn3[0])
          Temperature at nodes and gradients at end nodes
 */
         meso_tgn3[0]=meso_tgn2[1];
-        meso_tn3[1]=pma[3][0]*pavgm[3]/(1.0-flags.sw[22]*glob7s(pma[3], Input, flags));
-        meso_tn3[2]=pma[4][0]*pavgm[4]/(1.0-flags.sw[22]*glob7s(pma[4], Input, flags));
-        meso_tn3[3]=pma[5][0]*pavgm[5]/(1.0-flags.sw[22]*glob7s(pma[5], Input, flags));
-        meso_tn3[4]=pma[6][0]*pavgm[6]/(1.0-flags.sw[22]*glob7s(pma[6], Input, flags));
-        meso_tgn3[1]=pma[7][0]*pavgm[7]*(1.0+flags.sw[22]*glob7s(pma[7], Input, flags)) *meso_tn3[4]*meso_tn3[4]/(Math.pow((pma[6][0]*pavgm[6]),2.0));
+        meso_tn3[1]=data.pma[3][0]*data.pavgm[3]/(1.0-flags.sw[22]*glob7s(data.pma[3], Input, flags));
+        meso_tn3[2]=data.pma[4][0]*data.pavgm[4]/(1.0-flags.sw[22]*glob7s(data.pma[4], Input, flags));
+        meso_tn3[3]=data.pma[5][0]*data.pavgm[5]/(1.0-flags.sw[22]*glob7s(data.pma[5], Input, flags));
+        meso_tn3[4]=data.pma[6][0]*data.pavgm[6]/(1.0-flags.sw[22]*glob7s(data.pma[6], Input, flags));
+        meso_tgn3[1]=data.pma[7][0]*data.pavgm[7]*(1.0+flags.sw[22]*glob7s(data.pma[7], Input, flags)) *meso_tn3[4]*meso_tn3[4]/(Math.pow((data.pma[6][0]*data.pavgm[6]),2.0));
     }
     let dmc=0;
     if( (Input.alt>zmix) ) {
@@ -680,17 +687,17 @@ export function gtd7({Input, flags, output}) {
     output.d[2]=densm(Input.alt,dm28m,xmm, tz, mn3, zn3, meso_tn3, meso_tgn3, mn2, zn2, meso_tn2, meso_tgn2);
     output.d[2]=output.d[2] * (1.0 + dmr*dmc);
     ///**** HE density ****/
-    dmr = soutput.d[0] / (dz28 * pdm[0][1]) - 1.0;
-    output.d[0] = output.d[2] * pdm[0][1] * (1.0 + dmr*dmc);
+    dmr = soutput.d[0] / (dz28 * data.pdm[0][1]) - 1.0;
+    output.d[0] = output.d[2] * data.pdm[0][1] * (1.0 + dmr*dmc);
     ///**** O density ****/
     output.d[1] = 0;
     output.d[8] = 0;
     ///**** O2 density ****/
-    dmr = soutput.d[3] / (dz28 * pdm[3][1]) - 1.0;
-    output.d[3] = output.d[2] * pdm[3][1] * (1.0 + dmr*dmc);
+    dmr = soutput.d[3] / (dz28 * data.pdm[3][1]) - 1.0;
+    output.d[3] = output.d[2] * data.pdm[3][1] * (1.0 + dmr*dmc);
     ///**** AR density ***/
-    dmr = soutput.d[4] / (dz28 * pdm[4][1]) - 1.0;
-    output.d[4] = output.d[2] * pdm[4][1] * (1.0 + dmr*dmc);
+    dmr = soutput.d[4] / (dz28 * data.pdm[4][1]) - 1.0;
+    output.d[4] = output.d[2] * data.pdm[4][1] * (1.0 + dmr*dmc);
     ///**** Hydrogen density ****/
     output.d[6] = 0;
     ///**** Atomic nitrogen density ****/
@@ -718,29 +725,28 @@ export function ghp7({Input, flags, output, press}) { // pragma: no cover
     //rgas = 831.44621    #maybe make this a global constant?
     let test = 0.00043;
     let ltest = 12;
-    let pl = log10(press);
+    let pl = Math.log10(press);
+    let z;
     if( (pl >= -5.0) ) {
+        let zi;
         if( (pl>2.5) ) {
-            let zi = 18.06 * (3.00 - pl);
+            zi = 18.06 * (3.00 - pl);
         } else if( ((pl>0.075) && (pl<=2.5)) ) {
             zi = 14.98 * (3.08 - pl);
-}
- else if( ((pl>-1) && (pl<=0.075)) ) {
+        } else if( ((pl>-1) && (pl<=0.075)) ) {
             zi = 17.80 * (2.72 - pl);
-}
- else if( ((pl>-2) && (pl<=-1)) ) {
+        } else if( ((pl>-2) && (pl<=-1)) ) {
             zi = 14.28 * (3.64 - pl);
-}
- else if( ((pl>-4) && (pl<=-2)) ) {
+        } else if( ((pl>-4) && (pl<=-2)) ) {
             zi = 12.72 * (4.32 -pl);
-}
- else if( (pl<=-4) ) {
+        } else if( (pl<=-4) ) {
             zi = 25.3 * (0.11 - pl);
-}
+        }
         let cl = Input.g_lat/90.0;
         let cl2 = cl*cl;
+        let cd;
         if( (Input.doy<182) ) {
-            let cd = (1.0 - float(Input.doy)) / 91.25;
+            cd = (1.0 - float(Input.doy)) / 91.25;
         } else {
             cd = (float(Input.doy)) / 91.25 - 3.0;
         }
@@ -754,7 +760,7 @@ export function ghp7({Input, flags, output, press}) { // pragma: no cover
         if( ((pl <= -1.11) && (pl>-3)) ) {
             ca = (-2.93 - pl)/(-2.93 + 1.11);
         }
-        let z = zi - 4.87 * cl * cd * ca - 1.64 * cl2 * ca + 0.31 * ca * cl;
+        z = zi - 4.87 * cl * cd * ca - 1.64 * cl2 * ca + 0.31 * ca * cl;
     } else {
         z = 22.0 * Math.pow((pl + 4.0),2.0) + 110.0;
     }
@@ -770,7 +776,7 @@ export function ghp7({Input, flags, output, press}) { // pragma: no cover
         if( (flags.sw[0]) ) {
             p = p*1.0E-6;
         }
-        let diff = pl - log10(p);
+        let diff = pl - Math.log10(p);
         if( (Math.sqrt(diff*diff)<test) ) {
             return;
         }
@@ -796,276 +802,278 @@ export function gts7({Input, flags, output}) {
     let dr=1.72142E-2;
     let alpha = [-0.38, 0.0, 0.0, 0.0, 0.17, 0.0, -0.38, 0.0, 0.0];
     let altl = [200.0, 300.0, 160.0, 250.0, 240.0, 450.0, 320.0, 450.0];
-    let za = pdl[1][15];
+    let za = data.pdl[1][15];
     zn1[0] = za;
     for( let j; j<9; j++ ) {
         output.d[j]=0;
     }
     //
+    let tinf;
     if( (Input.alt>zn1[0]) ) {
-        let tinf = ptm[0]*pt[0] *  (1.0+flags.sw[16]*globe7(pt,Input,flags));
+        tinf = data.ptm[0]*data.pt[0] *  (1.0+flags.sw[16]*globe7(data.pt,Input,flags));
     } else {
-        tinf = ptm[0]*pt[0];
+        tinf = data.ptm[0]*data.pt[0];
     }
     output.t[0]=tinf;
     //
+    let g0;
     if( (Input.alt>zn1[4]) ) {
-        let g0 = ptm[3]*ps[0] *  (1.0+flags.sw[19]*globe7(ps,Input,flags));
+        g0 = data.ptm[3]*data.ps[0] *  (1.0+flags.sw[19]*globe7(data.ps,Input,flags));
     } else {
-        g0 = ptm[3]*ps[0];
+        g0 = data.ptm[3]*data.ps[0];
     }
-    let tlb = ptm[1] * (1.0 + flags.sw[17]*globe7(pd[3],Input,flags))*pd[3][0];
+    let tlb = data.ptm[1] * (1.0 + flags.sw[17]*globe7(data.pd[3],Input,flags))*data.pd[3][0];
     let s = g0 / (tinf - tlb);
 ///*      Lower thermosphere temp variations not significant for
 // *       density above 300 km */
     if( (Input.alt<300.0) ) {
-        meso_tn1[1]=ptm[6]*ptl[0][0]/(1.0-flags.sw[18]*glob7s(ptl[0], Input, flags));
-        meso_tn1[2]=ptm[2]*ptl[1][0]/(1.0-flags.sw[18]*glob7s(ptl[1], Input, flags));
-        meso_tn1[3]=ptm[7]*ptl[2][0]/(1.0-flags.sw[18]*glob7s(ptl[2], Input, flags));
-        meso_tn1[4]=ptm[4]*ptl[3][0]/(1.0-flags.sw[18]*flags.sw[20]*glob7s(ptl[3], Input, flags));
-        meso_tgn1[1]=ptm[8]*pma[8][0]*(1.0+flags.sw[18]*flags.sw[20]*glob7s(pma[8], Input, flags))*meso_tn1[4]*meso_tn1[4]/(Math.pow((ptm[4]*ptl[3][0]),2.0));
+        meso_tn1[1]=data.ptm[6]*data.ptl[0][0]/(1.0-flags.sw[18]*glob7s(data.ptl[0], Input, flags));
+        meso_tn1[2]=data.ptm[2]*data.ptl[1][0]/(1.0-flags.sw[18]*glob7s(data.ptl[1], Input, flags));
+        meso_tn1[3]=data.ptm[7]*data.ptl[2][0]/(1.0-flags.sw[18]*glob7s(data.ptl[2], Input, flags));
+        meso_tn1[4]=data.ptm[4]*data.ptl[3][0]/(1.0-flags.sw[18]*flags.sw[20]*glob7s(data.ptl[3], Input, flags));
+        meso_tgn1[1]=data.ptm[8]*data.pma[8][0]*(1.0+flags.sw[18]*flags.sw[20]*glob7s(data.pma[8], Input, flags))*meso_tn1[4]*meso_tn1[4]/(Math.pow((data.ptm[4]*data.ptl[3][0]),2.0));
     } else {
-        meso_tn1[1]=ptm[6]*ptl[0][0];
-        meso_tn1[2]=ptm[2]*ptl[1][0];
-        meso_tn1[3]=ptm[7]*ptl[2][0];
-        meso_tn1[4]=ptm[4]*ptl[3][0];
-        meso_tgn1[1]=ptm[8]*pma[8][0]*meso_tn1[4]*meso_tn1[4]/(Math.pow((ptm[4]*ptl[3][0]),2.0));
+        meso_tn1[1]=data.ptm[6]*data.ptl[0][0];
+        meso_tn1[2]=data.ptm[2]*data.ptl[1][0];
+        meso_tn1[3]=data.ptm[7]*data.ptl[2][0];
+        meso_tn1[4]=data.ptm[4]*data.ptl[3][0];
+        meso_tgn1[1]=data.ptm[8]*data.pma[8][0]*meso_tn1[4]*meso_tn1[4]/(Math.pow((data.ptm[4]*data.ptl[3][0]),2.0));
     }
     let z0 = zn1[3];
     let t0 = meso_tn1[3];
     let tr12 = 1.0;
     //
-    let g28=flags.sw[21]*globe7(pd[2], Input, flags);
+    let g28=flags.sw[21]*globe7(data.pd[2], Input, flags);
     //
-    let zhf=pdl[1][24]*(1.0+flags.sw[5]*pdl[0][24]*Math.sin(dgtr*Input.g_lat)*Math.cos(dr*(Input.doy-pt[13])));
+    let zhf=data.pdl[1][24]*(1.0+flags.sw[5]*data.pdl[0][24]*Math.sin(dgtr*Input.g_lat)*Math.cos(dr*(Input.doy-data.pt[13])));
     output.t[0]=tinf;
-    let xmm = pdm[2][4];
+    let xmm = data.pdm[2][4];
     let z = Input.alt;
     ///**** N2 DENSITY ****/
     //
-    let db28 = pdm[2][0]*Math.exp(g28)*pd[2][0];
+    let db28 = data.pdm[2][0]*Math.exp(g28)*data.pd[2][0];
     //
     let RandomVariable = [output.t[1]];
-    output.d[2]=densu(z,db28,tinf,tlb,28.0,alpha[2],RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+    output.d[2]=densu(z,db28,tinf,tlb,28.0,alpha[2],RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
     output.t[1] = RandomVariable[0];
     let dd=output.d[2];
     //
-    let zh28=pdm[2][2]*zhf;
-    let zhm28=pdm[2][3]*pdl[1][5];
+    let zh28=data.pdm[2][2]*zhf;
+    let zhm28=data.pdm[2][3]*data.pdl[1][5];
     let xmd=28.0-xmm;
     //
     let tz = [0];
-    let b28=densu(zh28,db28,tinf,tlb,xmd,(alpha[2]-1.0),tz,ptm[5],s,mn1, zn1,meso_tn1,meso_tgn1);
+    let b28=densu(zh28,db28,tinf,tlb,xmd,(alpha[2]-1.0),tz,data.ptm[5],s,mn1, zn1,meso_tn1,meso_tgn1);
     if( ((flags.sw[15]) && (z<=altl[2])) ) {
         //
-        var dm28=densu(z,b28,tinf,tlb,xmm,alpha[2],tz,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        var dm28=densu(z,b28,tinf,tlb,xmm,alpha[2],tz,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         //
         output.d[2]=dnet(output.d[2],dm28,zhm28,xmm,28.0);
     }
-    let g4 = flags.sw[21]*globe7(pd[0], Input, flags);
+    let g4 = flags.sw[21]*globe7(data.pd[0], Input, flags);
     //
-    let db04 = pdm[0][0]*Math.exp(g4)*pd[0][0];
+    let db04 = data.pdm[0][0]*Math.exp(g4)*data.pd[0][0];
     //
     RandomVariable = [output.t[1]];
-    output.d[0]=densu(z,db04,tinf,tlb, 4.,alpha[0],RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+    output.d[0]=densu(z,db04,tinf,tlb, 4.,alpha[0],RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
     output.t[1] = RandomVariable[0];
     dd=output.d[0];
     if( ((flags.sw[15]) && (z<altl[0])) ) {
         //
-        let zh04=pdm[0][2];
+        let zh04=data.pdm[0][2];
         //
         RandomVariable = [output.t[1]];
-        let b04=densu(zh04,db04,tinf,tlb,4.-xmm,alpha[0]-1.,RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        let b04=densu(zh04,db04,tinf,tlb,4.-xmm,alpha[0]-1.,RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         output.t[1] = RandomVariable[0];
         //
         RandomVariable = [output.t[1]];
-        var dm04=densu(z,b04,tinf,tlb,xmm,0.,RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        var dm04=densu(z,b04,tinf,tlb,xmm,0.,RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         output.t[1] = RandomVariable[0];
         let zhm04=zhm28;
         //
         output.d[0]=dnet(output.d[0],dm04,zhm04,xmm,4.);
         //
-        let rl=Math.log(b28*pdm[0][1]/b04);
-        let zc04=pdm[0][4]*pdl[1][0];
-        let hc04=pdm[0][5]*pdl[1][1];
+        let rl=Math.log(b28*data.pdm[0][1]/b04);
+        let zc04=data.pdm[0][4]*data.pdl[1][0];
+        let hc04=data.pdm[0][5]*data.pdl[1][1];
         //
         output.d[0]=output.d[0]*ccor(z,rl,hc04,zc04);
     }
-    let g16= flags.sw[21]*globe7(pd[1],Input,flags);
+    let g16= flags.sw[21]*globe7(data.pd[1],Input,flags);
     //
-    let db16 =  pdm[1][0]*Math.exp(g16)*pd[1][0];
+    let db16 =  data.pdm[1][0]*Math.exp(g16)*data.pd[1][0];
     //
     RandomVariable = [output.t[1]];
-    output.d[1]=densu(z,db16,tinf,tlb, 16.,alpha[1],RandomVariable,ptm[5],s,mn1, zn1,meso_tn1,meso_tgn1);
+    output.d[1]=densu(z,db16,tinf,tlb, 16.,alpha[1],RandomVariable,data.ptm[5],s,mn1, zn1,meso_tn1,meso_tgn1);
     output.t[1] = RandomVariable[0];
     dd=output.d[1];
     if( ((flags.sw[15]) && (z<=altl[1])) ) {
         //
-        let zh16=pdm[1][2];
+        let zh16=data.pdm[1][2];
         //
         RandomVariable = [output.t[1]];
-        let b16=densu(zh16,db16,tinf,tlb,16.0-xmm,(alpha[1]-1.0), RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        let b16=densu(zh16,db16,tinf,tlb,16.0-xmm,(alpha[1]-1.0), RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         output.t[1] = RandomVariable[0];
         //
         RandomVariable = [output.t[1]];
-        var dm16=densu(z,b16,tinf,tlb,xmm,0.,RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        var dm16=densu(z,b16,tinf,tlb,xmm,0.,RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         output.t[1] = RandomVariable[0];
         let zhm16=zhm28;
         //
         output.d[1]=dnet(output.d[1],dm16,zhm16,xmm,16.);
-        let rl=pdm[1][1]*pdl[1][16]*(1.0+flags.sw[1]*pdl[0][23]*(Input.f107A-150.0));
-        let hc16=pdm[1][5]*pdl[1][3];
-        let zc16=pdm[1][4]*pdl[1][2];
-        let hc216=pdm[1][5]*pdl[1][4];
+        let rl=data.pdm[1][1]*data.pdl[1][16]*(1.0+flags.sw[1]*data.pdl[0][23]*(Input.f107A-150.0));
+        let hc16=data.pdm[1][5]*data.pdl[1][3];
+        let zc16=data.pdm[1][4]*data.pdl[1][2];
+        let hc216=data.pdm[1][5]*data.pdl[1][4];
         output.d[1]=output.d[1]*ccor2(z,rl,hc16,zc16,hc216);
         //
-        let hcc16=pdm[1][7]*pdl[1][13];
-        let zcc16=pdm[1][6]*pdl[1][12];
-        let rc16=pdm[1][3]*pdl[1][14];
+        let hcc16=data.pdm[1][7]*data.pdl[1][13];
+        let zcc16=data.pdm[1][6]*data.pdl[1][12];
+        let rc16=data.pdm[1][3]*data.pdl[1][14];
         //
         output.d[1]=output.d[1]*ccor(z,rc16,hcc16,zcc16);
     }
-    let g32= flags.sw[21]*globe7(pd[4], Input, flags);
+    let g32= flags.sw[21]*globe7(data.pd[4], Input, flags);
     //
-    let db32 = pdm[3][0]*Math.exp(g32)*pd[4][0];
+    let db32 = data.pdm[3][0]*Math.exp(g32)*data.pd[4][0];
     //
     RandomVariable = [output.t[1]];
-    output.d[3]=densu(z,db32,tinf,tlb, 32.,alpha[3],RandomVariable,ptm[5],s,mn1, zn1,meso_tn1,meso_tgn1);
+    output.d[3]=densu(z,db32,tinf,tlb, 32.,alpha[3],RandomVariable,data.ptm[5],s,mn1, zn1,meso_tn1,meso_tgn1);
     output.t[1] = RandomVariable[0];
     dd=output.d[3];
     if( (flags.sw[15]) ) {
         if( (z<=altl[3]) ) {
             //
-            let zh32=pdm[3][2];
+            let zh32=data.pdm[3][2];
             //
             RandomVariable = [output.t[1]];
-            let b32=densu(zh32,db32,tinf,tlb,32.-xmm,alpha[3]-1., RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+            let b32=densu(zh32,db32,tinf,tlb,32.-xmm,alpha[3]-1., RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
             output.t[1] = RandomVariable[0];
             //
             RandomVariable = [output.t[1]];
-            var dm32=densu(z,b32,tinf,tlb,xmm,0.,RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+            var dm32=densu(z,b32,tinf,tlb,xmm,0.,RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
             output.t[1] = RandomVariable[0];
             let zhm32=zhm28;
             //
             output.d[3]=dnet(output.d[3],dm32,zhm32,xmm,32.);
             //
-            let rl=Math.log(b28*pdm[3][1]/b32);
-            let hc32=pdm[3][5]*pdl[1][7];
-            let zc32=pdm[3][4]*pdl[1][6];
+            let rl=Math.log(b28*data.pdm[3][1]/b32);
+            let hc32=data.pdm[3][5]*data.pdl[1][7];
+            let zc32=data.pdm[3][4]*data.pdl[1][6];
             output.d[3]=output.d[3]*ccor(z,rl,hc32,zc32);
         }
-        let hcc32=pdm[3][7]*pdl[1][22];
-        let hcc232=pdm[3][7]*pdl[0][22];
-        let zcc32=pdm[3][6]*pdl[1][21];
-        let rc32=pdm[3][3]*pdl[1][23]*(1.+flags.sw[1]*pdl[0][23]*(Input.f107A-150.));
+        let hcc32=data.pdm[3][7]*data.pdl[1][22];
+        let hcc232=data.pdm[3][7]*data.pdl[0][22];
+        let zcc32=data.pdm[3][6]*data.pdl[1][21];
+        let rc32=data.pdm[3][3]*data.pdl[1][23]*(1.+flags.sw[1]*data.pdl[0][23]*(Input.f107A-150.));
         //
         output.d[3]=output.d[3]*ccor2(z,rc32,hcc32,zcc32,hcc232);
     }
-    let g40= flags.sw[21]*globe7(pd[5],Input,flags);
+    let g40= flags.sw[21]*globe7(data.pd[5],Input,flags);
     //
-    let db40 = pdm[4][0]*Math.exp(g40)*pd[5][0];
+    let db40 = data.pdm[4][0]*Math.exp(g40)*data.pd[5][0];
     //
     RandomVariable = [output.t[1]];
-    output.d[4]=densu(z,db40,tinf,tlb, 40.,alpha[4],RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+    output.d[4]=densu(z,db40,tinf,tlb, 40.,alpha[4],RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
     output.t[1] = RandomVariable[0];
     dd=output.d[4];
     if( ((flags.sw[15]) && (z<=altl[4])) ) {
         //
-        let zh40=pdm[4][2];
+        let zh40=data.pdm[4][2];
         //
         RandomVariable = [output.t[1]];
-        let b40=densu(zh40,db40,tinf,tlb,40.-xmm,alpha[4]-1.,RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        let b40=densu(zh40,db40,tinf,tlb,40.-xmm,alpha[4]-1.,RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         output.t[1] = RandomVariable[0];
         //
         RandomVariable = [output.t[1]];
-        var dm40=densu(z,b40,tinf,tlb,xmm,0.,RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        var dm40=densu(z,b40,tinf,tlb,xmm,0.,RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         output.t[1] = RandomVariable[0];
         let zhm40=zhm28;
         //
         output.d[4]=dnet(output.d[4],dm40,zhm40,xmm,40.);
         //
-        let rl=Math.log(b28*pdm[4][1]/b40);
-        let hc40=pdm[4][5]*pdl[1][9];
-        let zc40=pdm[4][4]*pdl[1][8];
+        let rl=Math.log(b28*data.pdm[4][1]/b40);
+        let hc40=data.pdm[4][5]*data.pdl[1][9];
+        let zc40=data.pdm[4][4]*data.pdl[1][8];
         //
         output.d[4]=output.d[4]*ccor(z,rl,hc40,zc40);
     }
-    let g1 = flags.sw[21]*globe7(pd[6], Input, flags);
+    let g1 = flags.sw[21]*globe7(data.pd[6], Input, flags);
     //
-    let db01 = pdm[5][0]*Math.exp(g1)*pd[6][0];
+    let db01 = data.pdm[5][0]*Math.exp(g1)*data.pd[6][0];
     //
     RandomVariable = [output.t[1]];
-    output.d[6]=densu(z,db01,tinf,tlb,1.,alpha[6],RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+    output.d[6]=densu(z,db01,tinf,tlb,1.,alpha[6],RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
     output.t[1] = RandomVariable[0];
     dd=output.d[6];
     if( ((flags.sw[15]) && (z<=altl[6])) ) {
         //
-        let zh01=pdm[5][2];
+        let zh01=data.pdm[5][2];
         //
         RandomVariable = [output.t[1]];
-        let b01=densu(zh01,db01,tinf,tlb,1.-xmm,alpha[6]-1., RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        let b01=densu(zh01,db01,tinf,tlb,1.-xmm,alpha[6]-1., RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         output.t[1] = RandomVariable[0];
         //
         RandomVariable = [output.t[1]];
-        var dm01=densu(z,b01,tinf,tlb,xmm,0.,RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        var dm01=densu(z,b01,tinf,tlb,xmm,0.,RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         output.t[1] = RandomVariable[0];
         let zhm01=zhm28;
         //
         output.d[6]=dnet(output.d[6],dm01,zhm01,xmm,1.);
         //
-        rl=Math.log(b28*pdm[5][1]*Math.sqrt(pdl[1][17]*pdl[1][17])/b01);
-        let hc01=pdm[5][5]*pdl[1][11];
-        let zc01=pdm[5][4]*pdl[1][10];
+        let rl=Math.log(b28*data.pdm[5][1]*Math.sqrt(data.pdl[1][17]*data.pdl[1][17])/b01);
+        let hc01=data.pdm[5][5]*data.pdl[1][11];
+        let zc01=data.pdm[5][4]*data.pdl[1][10];
         output.d[6]=output.d[6]*ccor(z,rl,hc01,zc01);
         //
-        let hcc01=pdm[5][7]*pdl[1][19];
-        let zcc01=pdm[5][6]*pdl[1][18];
-        let rc01=pdm[5][3]*pdl[1][20];
+        let hcc01=data.pdm[5][7]*data.pdl[1][19];
+        let zcc01=data.pdm[5][6]*data.pdl[1][18];
+        let rc01=data.pdm[5][3]*data.pdl[1][20];
         //
         output.d[6]=output.d[6]*ccor(z,rc01,hcc01,zcc01);
     }
-    let g14 = flags.sw[21]*globe7(pd[7],Input,flags);
+    let g14 = flags.sw[21]*globe7(data.pd[7],Input,flags);
     //
-    let db14 = pdm[6][0]*Math.exp(g14)*pd[7][0];
+    let db14 = data.pdm[6][0]*Math.exp(g14)*data.pd[7][0];
     //
     RandomVariable = [output.t[1]];
-    output.d[7]=densu(z,db14,tinf,tlb,14.,alpha[7],RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+    output.d[7]=densu(z,db14,tinf,tlb,14.,alpha[7],RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
     output.t[1] = RandomVariable[0];
     dd=output.d[7];
     if( ((flags.sw[15]) && (z<=altl[7])) ) {
         //
-        let zh14=pdm[6][2];
+        let zh14=data.pdm[6][2];
         //
         RandomVariable = [output.t[1]];
-        let b14=densu(zh14,db14,tinf,tlb,14.-xmm,alpha[7]-1., RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        let b14=densu(zh14,db14,tinf,tlb,14.-xmm,alpha[7]-1., RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         output.t[1] = RandomVariable[0];
         //
         RandomVariable = [output.t[1]];
-        var dm14=densu(z,b14,tinf,tlb,xmm,0.,RandomVariable,ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
+        var dm14=densu(z,b14,tinf,tlb,xmm,0.,RandomVariable,data.ptm[5],s,mn1,zn1,meso_tn1,meso_tgn1);
         output.t[1] = RandomVariable[0];
         let zhm14=zhm28;
         //
         output.d[7]=dnet(output.d[7],dm14,zhm14,xmm,14.);
         //
-        rl=Math.log(b28*pdm[6][1]*Math.sqrt(pdl[0][2]*pdl[0][2])/b14);
-        let hc14=pdm[6][5]*pdl[0][1];
-        let zc14=pdm[6][4]*pdl[0][0];
+        let rl=Math.log(b28*data.pdm[6][1]*Math.sqrt(data.pdl[0][2]*data.pdl[0][2])/b14);
+        let hc14=data.pdm[6][5]*data.pdl[0][1];
+        let zc14=data.pdm[6][4]*data.pdl[0][0];
         output.d[7]=output.d[7]*ccor(z,rl,hc14,zc14);
         //
-        let hcc14=pdm[6][7]*pdl[0][4];
-        let zcc14=pdm[6][6]*pdl[0][3];
-        let rc14=pdm[6][3]*pdl[0][5];
+        let hcc14=data.pdm[6][7]*data.pdl[0][4];
+        let zcc14=data.pdm[6][6]*data.pdl[0][3];
+        let rc14=data.pdm[6][3]*data.pdl[0][5];
         //
         output.d[7]=output.d[7]*ccor(z,rc14,hcc14,zcc14);
     }
-    let g16h = flags.sw[21]*globe7(pd[8],Input,flags);
-    let db16h = pdm[7][0]*Math.exp(g16h)*pd[8][0];
-    let tho = pdm[7][9]*pdl[0][6];
+    let g16h = flags.sw[21]*globe7(data.pd[8],Input,flags);
+    let db16h = data.pdm[7][0]*Math.exp(g16h)*data.pd[8][0];
+    let tho = data.pdm[7][9]*data.pdl[0][6];
     RandomVariable = [output.t[1]];
-    dd=densu(z,db16h,tho,tho,16.,alpha[8],RandomVariable,ptm[5],s,mn1, zn1,meso_tn1,meso_tgn1);
+    dd=densu(z,db16h,tho,tho,16.,alpha[8],RandomVariable,data.ptm[5],s,mn1, zn1,meso_tn1,meso_tgn1);
     output.t[1] = RandomVariable[0];
-    let zsht=pdm[7][5];
-    let zmho=pdm[7][4];
+    let zsht=data.pdm[7][5];
+    let zmho=data.pdm[7][4];
     let zsho=scalh(zmho,16.0,tho);
     output.d[8]=dd*Math.exp(-zsht/zsho*(Math.exp(-(z-zmho)/zsht)-1.));
     //
@@ -1074,7 +1082,7 @@ export function gts7({Input, flags, output}) {
     //
     z = Math.sqrt(Input.alt*Input.alt);
     RandomVariable = [output.t[1]];
-    let ddum = densu(z,1.0, tinf, tlb, 0.0, 0.0, RandomVariable, ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
+    let ddum = densu(z,1.0, tinf, tlb, 0.0, 0.0, RandomVariable, data.ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
     output.t[1] = RandomVariable[0];
     if( (flags.sw[0]) ) { // pragma: no cover
         for( let i; i<9; i++ ) {

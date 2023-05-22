@@ -1,4 +1,5 @@
 __all__ = ['wraps_numpydoc', 'u'];
+import { listZip, stringInterpolate, hasAttr, getAttr, setAttr, isInstance } from './_pyjs.js';
 const types = require( './types' );
 const re = require( './re' );
 const inspect = require( './inspect' );
@@ -93,7 +94,7 @@ export function parse_numpydoc_variables_units_docstring(text) {
     let section_text = match_sections.split(text);
 
     let sections = {};
-    for( let [ i, j ] of _pyjs.listZip(section_names, section_text.slice(1 )) ) { sections[i] = j; }
+    for( let [ i, j ] of listZip(section_names, section_text.slice(1 )) ) { sections[i] = j; }
 
 
     let parsed = {};
@@ -145,7 +146,7 @@ export function check_args_order(func) {
         parsed_units += parsed_data['Other Parameters']['units'];
     }
     if( argspec.args !== parsed_parameters ) { // pragma: no cover
-        throw new Error( 'ValueError',_pyjs.stringInterpolate( 'Function %s signature is not the same as the documentation'
+        throw new Error( 'ValueError',stringInterpolate( 'Function %s signature is not the same as the documentation'
                         ' signature = %s; documentation = %s',[func.__name__, argspec.args, parsed_parameters] ) );
     }
 }
@@ -170,11 +171,11 @@ export function convert_input({val, unit, ureg, strict=true}) {
     if ( unit !== 'dimensionless' ) {
         try { return val.to(unit).magnitude; }
         catch( e ) /* AttributeError */ {
-            if( strict ) { throw new Error( 'TypeError',_pyjs.stringInterpolate( '%s has no quantity', [(val) ] ) ); }
+            if( strict ) { throw new Error( 'TypeError',stringInterpolate( '%s has no quantity', [(val) ] ) ); }
             else { return val; }
         }
         except DimensionalityError as e:
-            throw new Error( 'ValueError',_pyjs.stringInterpolate( 'Converting %s to units of %s raised DimensionalityError: %s',[val, unit, str(e)] ) );
+            throw new Error( 'ValueError',stringInterpolate( 'Converting %s to units of %s raised DimensionalityError: %s',[val, unit, str(e)] ) );
     }
     else {
         if( type(val) === ureg.Quantity ) { return val.to_base_units().magnitude; }
@@ -206,9 +207,9 @@ export function convert_output({result, out_units, out_vars, ureg}) {
         return result;
     } else if( ( Object.is( t, list ) || Object.is( t, ndarray )) && output_count === 1 ) {
         return np.array(result)*parse_expression_cached(out_units[0], ureg);
-    } else if( _pyjs.isInstance(result, Iterable) ) {
+    } else if( isInstance(result, Iterable) ) {
         let conveted_result = [];
-        for( let [ ans, unit ] of _pyjs.listZip(result, out_units) ) { conveted_result.push(ans*parse_expression_cached(unit, ureg)); }
+        for( let [ ans, unit ] of listZip(result, out_units) ) { conveted_result.push(ans*parse_expression_cached(unit, ureg)); }
         return conveted_result;
     } else {
         return result*parse_expression_cached(out_units[0], ureg);
@@ -222,8 +223,8 @@ let out_vars_cache = {};
 let out_units_cache = {};
 export function wraps_numpydoc({ureg, strict=true}) {
         function decorator(func) {
-        let assigned = [attr for attr in functools.WRAPPER_ASSIGNMENTS if _pyjs.hasAttr(func, attr)];
-        let updated = [attr for attr in functools.WRAPPER_UPDATES if _pyjs.hasAttr(func, attr)];
+        let assigned = [attr for attr in functools.WRAPPER_ASSIGNMENTS if hasAttr(func, attr)];
+        let updated = [attr for attr in functools.WRAPPER_UPDATES if hasAttr(func, attr)];
         let parsed_info = parse_numpydoc_variables_units(func);
 
         let in_vars = copy(parsed_info['Parameters']['vars']);
@@ -233,7 +234,7 @@ export function wraps_numpydoc({ureg, strict=true}) {
             in_units += parsed_info['Other Parameters']['units'];
         }
         let in_vars_to_dict = {};
-        for( let [ i, j ] of _pyjs.listZip(in_vars, in_units) ) {
+        for( let [ i, j ] of listZip(in_vars, in_units) ) {
             let in_vars_to_dict[i] = j;
         }
 
@@ -255,7 +256,7 @@ export function wraps_numpydoc({ureg, strict=true}) {
             // Convert input ordered variables to dimensionless form, after converting
             // them to the the units specified by their documentation
             let conv_values = [];
-            for( let [ val, unit ] of _pyjs.listZip(values, in_units) ) {
+            for( let [ val, unit ] of listZip(values, in_units) ) {
                 conv_values.push(convert_input(val, unit, ureg, strict));
             }
 
@@ -267,7 +268,7 @@ export function wraps_numpydoc({ureg, strict=true}) {
                 let kwargs[name] = convert_input(val, unit, ureg, strict);
             }
             if( any( list(kw.values()) + list(values).filter( i => type(i) === u.Quantity ).map( i =>type(i.m) === np.ndarray )) ) {
-                let result = _pyjs.getAttr(fluids.vectorized, func.__name__)(*conv_values, **kwargs);
+                let result = getAttr(fluids.vectorized, func.__name__)(*conv_values, **kwargs);
             } else {
                 let result = func(*conv_values, **kwargs);
             }
@@ -332,9 +333,9 @@ export function wraps_numpydoc({ureg, strict=true}) {
             instance = false;
         }
         try {
-            let value = _pyjs.getAttr(this.wrapped, name);
+            let value = getAttr(this.wrapped, name);
         } catch( e ) /* Exception */ {
-            throw new Error( 'AttributeError',_pyjs.stringInterpolate( 'Failed to get property %s with error %s',[str(name), str(e)] ) );
+            throw new Error( 'AttributeError',stringInterpolate( 'Failed to get property %s with error %s',[str(name), str(e)] ) );
         }
         if( value !== null ) {
             if( name in this.property_units ) {
@@ -355,7 +356,7 @@ export function wraps_numpydoc({ureg, strict=true}) {
                     return value;
                 }
             } else {
-                if( _pyjs.hasAttr(value, '__call__') ) {
+                if( hasAttr(value, '__call__') ) {
 
 //                    if not instance:
 //                        @functools.wraps(value)
@@ -403,7 +404,7 @@ export function wraps_numpydoc({ureg, strict=true}) {
     input_units_to_dimensionless( name, *values, **kw) {
         let in_vars, in_units, in_vars_to_dict, out_vars, out_units = this.method_units[name];
         let conv_values = [];
-        for( let [ val, unit ] of _pyjs.listZip(values, in_units) ) {
+        for( let [ val, unit ] of listZip(values, in_units) ) {
             conv_values.push(convert_input(val, unit, this.ureg, this.strict));
         }
 
@@ -427,7 +428,7 @@ export function clean_parsed_info(parsed_info) {
         in_units += parsed_info['Other Parameters']['units'];
     }
     let in_vars_to_dict = {};
-    for( let [ i, j ] of _pyjs.listZip(in_vars, in_units) ) {
+    for( let [ i, j ] of listZip(in_vars, in_units) ) {
         in_vars_to_dict[i] = j;
     }
 
@@ -455,13 +456,13 @@ export function wrap_numpydoc_obj(obj_to_wrap) {
     }
     let other_bases = obj_to_wrap.__mro__.slice(1,-1 );
     for( let prop of dir(obj_to_wrap) ) {
-        let attr = _pyjs.getAttr(obj_to_wrap, prop);
-        if( _pyjs.isInstance(attr, types.FunctionType) || _pyjs.isInstance(attr, types.MethodType) or type(attr) === property ) {
+        let attr = getAttr(obj_to_wrap, prop);
+        if( isInstance(attr, types.FunctionType) || isInstance(attr, types.MethodType) or type(attr) === property ) {
             try {
-                if( _pyjs.isInstance(obj_to_wrap.__dict__[prop], staticmethod) ) {
+                if( isInstance(obj_to_wrap.__dict__[prop], staticmethod) ) {
                     static_methods.add(prop);
                 }
-                if( _pyjs.isInstance(obj_to_wrap.__dict__[prop], classmethod) ) {
+                if( isInstance(obj_to_wrap.__dict__[prop], classmethod) ) {
                     class_methods.add(prop);
                 }
             } catch( e ) {
@@ -472,12 +473,12 @@ export function wrap_numpydoc_obj(obj_to_wrap) {
             } else {
                 name = prop; // Do not use attr.__name__ here to allow aliases, use whatever it was assigned to
             }
-            let found_doc = _pyjs.hasAttr(attr, '__doc__') && attr.__doc__ !== null;
+            let found_doc = hasAttr(attr, '__doc__') && attr.__doc__ !== null;
             if( !found_doc && other_bases ) {
                 for( let base of other_bases ) {
-                    if( _pyjs.hasAttr(base, prop) ) {
-                        let base_prop = _pyjs.getAttr(base, prop);
-                        found_doc = _pyjs.hasAttr(base_prop, '__doc__') && base_prop.__doc__ !== null;
+                    if( hasAttr(base, prop) ) {
+                        let base_prop = getAttr(base, prop);
+                        found_doc = hasAttr(base_prop, '__doc__') && base_prop.__doc__ !== null;
                         if( found_doc ) {
                             attr = base_prop;
                             break;
@@ -501,7 +502,7 @@ export function wrap_numpydoc_obj(obj_to_wrap) {
                         if( name[0] === '_' ) {
                             found_unit = u.dimensionless;
                         } else {
-                            console.log(_pyjs.stringInterpolate( 'Failed on attribute %s', [name ] ));
+                            console.log(stringInterpolate( 'Failed on attribute %s', [name ] ));
                             throw new Error( 'e' );
                         }
                     }
@@ -524,11 +525,11 @@ export function wrap_numpydoc_obj(obj_to_wrap) {
 
         if( 'Attributes' in parsed ) {
             property_unit_map.update( 
-                                      _pyjs.listZip(parsed['Attributes']['vars'], parsed['Attributes']['units']).reduce( ( __map, [ var, unit ] ) => ( { ...__map, [var ]:parse_expression_cached(make_dimensionless_units(unit), u) } ), {} ) );
+                                      listZip(parsed['Attributes']['vars'], parsed['Attributes']['units']).reduce( ( __map, [ var, unit ] ) => ( { ...__map, [var ]:parse_expression_cached(make_dimensionless_units(unit), u) } ), {} ) );
         }
         if( 'Parameters' in parsed ) {
             property_unit_map.update( 
-                                      _pyjs.listZip(parsed['Parameters']['vars'], parsed['Parameters']['units']).reduce( ( __map, [ var, unit ] ) => ( { ...__map, [var ]:parse_expression_cached(make_dimensionless_units(unit), u) } ), {} ) );
+                                      listZip(parsed['Parameters']['vars'], parsed['Parameters']['units']).reduce( ( __map, [ var, unit ] ) => ( { ...__map, [var ]:parse_expression_cached(make_dimensionless_units(unit), u) } ), {} ) );
         }
     }
     name = obj_to_wrap.__name__;
@@ -541,10 +542,10 @@ export function wrap_numpydoc_obj(obj_to_wrap) {
     for( let m of static_methods ) {
         //def a_static_method(*args, the_method=m, **kwargs):
             //return fun._another_getattr(the_method)(*args, **kwargs)
-        _pyjs.setAttr(fun, m, staticmethod(fun._another_getattr(m)));
+        setAttr(fun, m, staticmethod(fun._another_getattr(m)));
     }
     for( let m of class_methods ) {
-        _pyjs.setAttr(fun, m, classmethod(fun._another_getattr(m)));
+        setAttr(fun, m, classmethod(fun._another_getattr(m)));
     }
     return fun;
 }
@@ -562,7 +563,7 @@ export function kwargs_to_args({args, kwargs, signature}) {
     let output = list(args);
     // Extend the list and initialize as None by default
     output.extend([null]*(argument_number - arg_number));
-    for( let i of range(arg_number, argument_number) ) {
+    for( let i=arg_number; i < argument_number; i++ ) {
         if( signature[i] in kwargs ) {
             output[i] = kwargs[signature[i]];
         }
@@ -577,13 +578,13 @@ for (name in dir(fluids)){
     if (name.indexOf('RectangularOffsetStripFinExchanger') > -1) continue;
     if (name.indexOf('ParticleSizeDistribution') > -1){ continue; }
     if (name == '__getattr__' || name == '__test__') { continue; }
-    obj = _pyjs.getAttr(fluids, name);
-    if (_pyjs.isInstance(obj, types.FunctionType)){ obj = wraps_numpydoc(u)(obj); }
+    obj = getAttr(fluids, name);
+    if (isInstance(obj, types.FunctionType)){ obj = wraps_numpydoc(u)(obj); }
     else if (type(obj) == type){ obj = wrap_numpydoc_obj(obj); }
     // Functions accessed with the namespace like friction.friction_factor
     // would call the original function - leads to user confusion if they are exposed
     else if (type(obj) is types.ModuleType) { continue; }
-    else if (_pyjs.isInstance(obj, str)) { continue; }
+    else if (isInstance(obj, str)) { continue; }
     if (name == '__all__') { continue; }
     __all__.push(name);
     __pint_wrapped_functions.update({name: obj});
@@ -661,7 +662,7 @@ export function variable_output_wrapper({func, wrapped_basic_func, output_signat
 
 for (name in variable_output_unit_funcs){
     val = variable_output_unit_funcs[name];
-    globals()[name] = variable_output_wrapper(_pyjs.getAttr(fluids, name),
+    globals()[name] = variable_output_wrapper(getAttr(fluids, name),
             __pint_wrapped_functions[name], val[0], val[1]);
 }
 

@@ -1,14 +1,14 @@
 let __all__ = ['nrlmsise_flags', 'ap_array', 'nrlmsise_input', 'nrlmsise_output'];
 export class nrlmsise_flags {
     constructor() {
-        this.switches = [0.0]*24;
-        this.sw = [0.0]*24;
-        this.swc = [0.0]*24;
+        this.switches = Array(24).fill(0);
+        this.sw = Array(24).fill(0);
+        this.swc = Array(24).fill(0);
     }
 }
 export class ap_array {
     constructor() {
-        this.a = [0.0]*7;
+        this.a = Array(7).fill(0);
     }
 }
 export class nrlmsise_input {
@@ -29,7 +29,7 @@ export class nrlmsise_input {
 }
 export class nrlmsise_output {
     constructor() {
-        this.d = [0.0]*9; ///* densities */
-        this.t = [0.0]*2; ///* temperatures */
+        this.d = Array(9).fill(0); ///* densities */
+        this.t = Array(2).fill(0); ///* temperatures */
     }
 }

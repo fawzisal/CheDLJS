@@ -50,6 +50,7 @@
     "flo-poly": "^6.0.4",
     "fs.realpath": "^1.0.0",
     "fsevents": "^2.3.2",
+    "fuzzball": "^2.1.2",
     "get-caller-file": "^2.0.5",
     "get-func-name": "^2.0.0",
     "glob": "^7.2.0",

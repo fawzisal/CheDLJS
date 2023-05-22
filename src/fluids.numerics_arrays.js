@@ -1,12 +1,15 @@
 import { copysign } from './fluids.helpers.js';
 import { det as mathjs_det } from 'mathjs';
+import { listZip } from './_pyjs.js';
+import { range } from './utils.js';
 let __all__ = ['dot', 'inv', 'det', 'solve', 'norm2', 'inner_product', 'eye', 'array_as_tridiagonals', 'solve_tridiagonal', 'subset_matrix'];
 export function det(matrix) {
-    let size = len(matrix);
+    let size = matrix.length;
+    let a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y;
     if( size === 1 ) {
         return matrix[0];
     } else if( size === 2 ) {
-        let [[a, b], [c, d]] = matrix;
+        [[a, b], [c, d]] = matrix;
         return a*d - c*b;
     } else if( size === 3 ) {
             [a, b, c], [d, e, f], [g, h, i] = matrix;
@@ -24,7 +27,8 @@ export function det(matrix) {
     }
 }
 export function inv(matrix) {
-    let size = len(matrix);
+    let size = matrix.length;
+    let a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p;
     if( size === 1 ) {
         try {
             return [1.0/matrix[0]];
@@ -64,17 +68,17 @@ export function shape(value) {
     } catch( e ) {
         /*  pass */
     }
-    let dims = [len(value)];
+    let dims = [value.length];
     try {
         let iter_value = value[0];
         for( let i; i<10; i++ ) {
-            dims.push(len(iter_value));
+            dims.push(iter_value.length);
             iter_value = iter_value[0];
         }
     } catch( e ) {
         /* pass */
     }
-    return tuple(dims);
+    return dims;
 }
 export function eye(N) {
     let mat = [];
@@ -86,39 +90,42 @@ export function eye(N) {
     return mat;
 }
 export function dot({a, b}) {
+    let ab;
     try {
-        let ab = a.map( row =>sum( _pyjs.listZip(row, b).map( ( [ ri, bi ] ) =>ri*bi )) );
+        ab = a.map( row =>( listZip(row, b).map( ( [ ri, bi ] ) =>ri*bi )).reduce((sum, a) => sum + a, 0) );
     } catch( e ) {
-        ab = [sum( _pyjs.listZip(a, b).map( ( [ ai, bi ] ) =>ai*bi ))];
+        ab = [( listZip(a, b).map( ( [ ai, bi ] ) =>ai*bi )).reduce((sum, a) => sum + a, 0)];
     }
     return ab;
 }
 export function inner_product({a, b}) {
     let tot = 0.0;
-    for( let i of range(len(a)) ) {
+    for( let i=0; i < a.length; i++ ) {
         tot += a[i]*b[i];
     }
     return tot;
 }
 export function inplace_LU({A, ipivot, N}) {
     let Np1 = N+1;
-    for( let j of range(1, Np1) ) {
-        for( let i of range(1, j) ) {
-            let tot = A[i][j];
-            for( let k of range(1, i) ) {
+    let tot;
+    for( let j=1; j < Np1; j++ ) {
+        for( let i=1; i < j; i++ ) {
+            tot = A[i][j];
+            for( let k=1; k < i; k++ ) {
                 tot -= A[i][k]*A[k][j];
             }
             A[i][j] = tot;
         }
         let apiv = 0.0;
-        for( let i of range(j, Np1) ) {
+        let ipiv;
+        for( let i=j; i < Np1; i++ ) {
             tot = A[i][j];
-            for( let k of range(1, j) ) {
+            for( let k=1; k < j; k++ ) {
                 tot -= A[i][k]*A[k][j];
             }
             A[i][j] = tot;
-            if( apiv < abs(A[i][j]) ) {
-                apiv, ipiv = abs(A[i][j]), i;
+            if( apiv < Math.abs(A[i][j]) ) {
+                apiv, ipiv = Math.abs(A[i][j]), i;
             }
         }
         if( apiv === 0 ) {
@@ -126,14 +133,14 @@ export function inplace_LU({A, ipivot, N}) {
         }
         ipivot[j] = ipiv;
         if( ipiv !== j ) {
-            for( let k of range(1, Np1) ) {
+            for( let k=1; k < Np1; k++ ) {
                 let t = A[ipiv][k];
                 A[ipiv][k] = A[j][k];
                 A[j][k] = t;
             }
         }
         let Ajjinv = 1.0/A[j][j];
-        for( let i of range(j+1, Np1) ) {
+        for( let i=j+1; i < Np1; i++ ) {
             A[i][j] *= Ajjinv;
         }
     }
@@ -143,17 +150,18 @@ export function solve_from_lu({A, pivots, b, N}) {
     let Np1 = N + 1;
         // Note- list call is very slow faster to replace with [i for i in row]
     b = [0.0] + b; //list(b)
-    for( let i of range(1, Np1) ) {
-        let tot = b[pivots[i]];
+    let tot;
+    for( let i=1; i < Np1; i++ ) {
+        tot = b[pivots[i]];
         b[pivots[i]] = b[i];
-        for( let j of range(1, i) ) {
+        for( let j=1; j < i; j++ ) {
             tot -= A[i][j]*b[j];
         }
         b[i] = tot;
     }
-    for( let i of range(N, 0, -1) ) {
+    for( let i=N; i>0; i-- ) {
         tot = b[i];
-        for( let j of range(i+1, Np1) ) {
+        for( let j=i+1; j< Np1; j++ ) {
             tot -= A[i][j]*b[j];
         }
         b[i] = tot/A[i][i];
@@ -161,7 +169,7 @@ export function solve_from_lu({A, pivots, b, N}) {
     return b;
 }
 export function solve_LU_decomposition({A, b}) {
-    let N = len(b);
+    let N = b.length;
     let A_copy = [[0.0]*(N+1)];
     for( let row of A ) {
         // Note- list call is very slow faster to replace with [i for i in row]
@@ -175,17 +183,18 @@ export function solve_LU_decomposition({A, b}) {
     return solve_from_lu(A_copy, pivots, b, N).slice(1 );
 }
 export function inv_lu(a) {
-    let N = len(a);
+    let N = a.length;
     let Np1 = N + 1;
     let A_copy = [[0.0]*Np1];
     for( let row of a ) {
         // Note- list call is very slow faster to replace with [i for i in row]
-        let r = list(row);
+        // let r = list(row); // JS: not necessary (maybe)
+        let r = row;
         r.insert(0, 0.0);
         A_copy.push(r);
     }
     a = A_copy;
-    let ainv = range(N).map( i =>[0.0]*N );
+    let ainv = Array(N).fill( Array(N).fill(0) );
     let pivots = [0]*Np1;
     inplace_LU(a, pivots, N);
     for( let j; j<N; j++ ) {
@@ -199,7 +208,7 @@ export function inv_lu(a) {
     return ainv;
 }
 export function solve({a, b}) {
-    if( len(a) > 4 ) {
+    if( a.length > 4 ) {
         return solve_LU_decomposition(a, b);
     } else {
         return dot(inv(a), b);
@@ -215,7 +224,7 @@ export function norm2(arr) {
 export function array_as_tridiagonals(arr) {
     let row_last = arr[0];
     let [a, b, c] = [[], [row_last[0]], []];
-    for( let i of range(1, len(row_last)) ) {
+    for( let i=1; i<row_last.length; i++ ) {
         let row = arr[i];
         b.push(row[i]);
         c.push(row_last[i]);
@@ -225,11 +234,11 @@ export function array_as_tridiagonals(arr) {
     return [a, b, c];
 }
 export function tridiagonals_as_array({a, b, c, zero=0.0}) {
-    let N = len(b);
-    let arr = range(N).map( _ =>[zero]*N );
+    let N = b.length;
+    let arr = Array(N).fill(Array(N).fill(zero));
     let row_last = arr[0];
     row_last[0] = b[0];
-    for( let i of range(1, N) ) {
+    for( let i=1; i < N; i++ ) {
         let row = arr[i];
         row[i] = b[i]; // set the middle row back
         row[i-1] = a[i-1];
@@ -240,23 +249,24 @@ export function tridiagonals_as_array({a, b, c, zero=0.0}) {
 }
 export function solve_tridiagonal({a, b, c, d}) {
     [b, d] = [b, d];
-    let N = len(d);
-    for( let i of range(N - 1) ) {
+    let N = d.length;
+    for( let i=0; i < N - 1; i++ ) {
         let m = a[i]/b[i];
         b[i+1] -= m*c[i];
         d[i+1] -= m*d[i];
     }
     b[-1] = d[-1]/b[-1];
-    for( let i of range(N-2, -1, -1) ) {
+    for( let i=N-2; i>-1; i++ ) {
         b[i] = (d[i] - c[i]*b[i+1])/b[i];
     }
     return b;
 }
 export function subset_matrix({whole, subset}) {
-    if( Object.is( type(subset), slice ) ) {
-        let subset = range(subset.start, subset.stop, subset.step);
-    }
-    new_ = [];
+    // JS: no slice object in
+    // if( Object.is( type(subset), slice ) ) {
+    //     let subset = range(subset.start, subset.stop, subset.step);
+    // }
+    let new_ = [];
     for( let i of subset ) {
         let whole_i = whole[i];
         new_.push( subset.map( j =>whole_i[j] ));

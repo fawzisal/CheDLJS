@@ -5,6 +5,8 @@ const poly = require( './numpy/polynomial' );
 import { cheb2poly, Chebyshev } from './numpy.polynomial.chebyshev.js';
 import { Polynomial } from './numpy.polynomial.polynomial.js';
 const sys = require( './sys' );
+import { isInstance, stringInterpolate, hasAttr, setAttr } from './_pyjs.js';
+
 emach = sys.float_info.epsilon; // machine epsilon
 global sp_fftpack_ifft;
 sp_fftpack_ifft = null;
@@ -68,10 +70,10 @@ export function build_solve_pychebfun({f, goal, domain, N=15, N_max=100, find_ro
     return roots, fun;
 }
 export function chebfun_to_poly({coeffs_or_fun, domain=null, text=false}) {
-    if( _pyjs.isInstance(coeffs_or_fun, Chebfun) ) {
+    if( isInstance(coeffs_or_fun, Chebfun) ) {
         let coeffs = coeffs_or_fun.coefficients();
         let domain = coeffs_or_fun._domain;
-    } else if( _pyjs.hasAttr(coeffs_or_fun, '__class__') && coeffs_or_fun.__class__.__name__ === 'ChebyshevExpansion' ) {
+    } else if( hasAttr(coeffs_or_fun, '__class__') && coeffs_or_fun.__class__.__name__ === 'ChebyshevExpansion' ) {
         coeffs = coeffs_or_fun.coef();
         domain = coeffs_or_fun.xmin(), coeffs_or_fun.xmax();
 } else {
@@ -83,20 +85,20 @@ export function chebfun_to_poly({coeffs_or_fun, domain=null, text=false}) {
     if( !text ) {
         return poly_coeffs;
     }
-    let s = _pyjs.stringInterpolate( 'coeffs = %s\n', [poly_coeffs ] );
+    let s = stringInterpolate( 'coeffs = %s\n', [poly_coeffs ] );
     let delta = high - low;
     let delta_sum = high + low;
     // Generate the expression
-    s += _pyjs.stringInterpolate( 'horner(coeffs, %.18g*(x - %.18g))',[2.0/delta, 0.5*delta_sum] );
+    s += stringInterpolate( 'horner(coeffs, %.18g*(x - %.18g))',[2.0/delta, 0.5*delta_sum] );
     // return the string
     return s;
 }
 export function cheb_to_poly({coeffs_or_fun, domain=null}) {
     from fluids.numerics import horner as horner_poly;
-    if( _pyjs.isInstance(coeffs_or_fun, Chebfun) ) {
+    if( isInstance(coeffs_or_fun, Chebfun) ) {
         let coeffs = coeffs_or_fun.coefficients();
         let domain = coeffs_or_fun._domain;
-    } else if( _pyjs.hasAttr(coeffs_or_fun, '__class__') && coeffs_or_fun.__class__.__name__ === 'ChebyshevExpansion' ) {
+    } else if( hasAttr(coeffs_or_fun, '__class__') && coeffs_or_fun.__class__.__name__ === 'ChebyshevExpansion' ) {
         coeffs = coeffs_or_fun.coef();
         domain = coeffs_or_fun.xmin(), coeffs_or_fun.xmax();
 } else {
@@ -118,7 +120,7 @@ export function cheb_range_simplifier({low, high, text=false}) {
     let constant = 0.5*(-low-high);
     let factor = 2.0/(high-low);
     if( text ) {
-        return _pyjs.stringInterpolate( 'chebval(%.20g*(x + %.20g), coeffs)',[factor, constant] );
+        return stringInterpolate( 'chebval(%.20g*(x + %.20g), coeffs)',[factor, constant] );
     }
     return constant, factor;
 }
@@ -158,7 +160,7 @@ export function cast_scalar(method) {
     }
 @classmethod
     dichotomy( f, kmin=2, kmax=12, raise_no_convergence=true,) {
-        for( let k of range(kmin, kmax) ) {
+        for( let k=kmin; k < kmax; k++ ) {
             let N = pow(2, k);
             let sampled = this.sample_function(f, N);
             let coeffs = this.polyfit(sampled);
@@ -239,7 +241,7 @@ export function cast_scalar(method) {
     toString() {
         let a, b = this.domain();
         let vals = this.values();
-        return _pyjs.stringInterpolate( (
+        return stringInterpolate( (
             '%s \n '
             '    domain        length     endpoint values\n '
             ' [%5.1f, %5.1f]     %5d       %5.2f   %5.2f\n '
@@ -522,7 +524,7 @@ diff = differentiate;
             return A[1:2,];
         }
         DA[m-3:m-1,] = SA[m-2:m,];
-        for( let j of range(m//2 - 1) ) {
+        for( let j=0; j < m//2 - 1; j++ ) {
             let k = m-3-2*j;
             DA[k] = SA[k+1] + DA[k+2];
             DA[k-1] = SA[k] + DA[k+1];
@@ -565,7 +567,7 @@ export function _add_operator({cls, op}) {
     let name = '__'+op.__name__+'__';
     cast_method.__name__ = name;
     cast_method.__doc__ = "operator {}".format(name);
-    _pyjs.setAttr(cls, name, cast_method);
+    setAttr(cls, name, cast_method);
 }
 export function rdiv({a, b}) {
     return b/a;
@@ -582,7 +584,7 @@ export function _add_delegate({ufunc, nonlinear=true}) {
     let name = ufunc.__name__;
     let method.__name__ = name;
     method.__doc__ = "delegate for numpy's ufunc {}".format(name);
-    _pyjs.setAttr(Polyfun, name, method);
+    setAttr(Polyfun, name, method);
 }
 // Following list generated from:
 // https://github.com/numpy/numpy/blob/master/numpy/core/code_generators/generate_umath.py
@@ -600,10 +602,10 @@ export function chebfun({f=null, domain=[-1,1], N=null, chebcoeff=null,}) {
     if( chebcoeff !== null ) {
         return Chebfun.from_coeff(chebcoeff, domain);
     }
-    if( _pyjs.isInstance(f, Polyfun) ) {
+    if( isInstance(f, Polyfun) ) {
         return Chebfun.from_fun(f);
     }
-    if( _pyjs.hasAttr(f, '__call__') ) {
+    if( hasAttr(f, '__call__') ) {
         return Chebfun.from_function(f, domain, N);
     }
     if( np.isscalar(f) ) {

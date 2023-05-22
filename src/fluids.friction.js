@@ -2,26 +2,26 @@ import { radians, updateObj } from './fluids.helpers.js' ;
 import { inch, g } from './fluids.constants.js' ;
 import { secant, lambertw } from './fluids.numerics_init.js' ;
 import { Dean, Reynolds } from './fluids.core.js' ;
-
+import { float } from './_pyjs.js';
+import { lambert_W0 } from './utils.js';
+import { fuzzball } from 'fuzzball';
 
 let __all__ = ['friction_factor', 'friction_factor_methods', 'friction_factor_curved', 'helical_Re_crit', 'friction_factor_curved_methods', 'Colebrook', 'Clamond', 'friction_laminar', 'one_phase_dP', 'one_phase_dP_gravitational', 'one_phase_dP_dz_acceleration', 'one_phase_dP_acceleration', 'transmission_factor', 'material_roughness', 'nearest_material_roughness', 'roughness_Farshad', '_Farshad_roughness', '_roughness', 'HHR_roughness', 'Moody', 'Alshul_1952', 'Wood_1966', 'Churchill_1973', 'Eck_1973', 'Jain_1976', 'Swamee_Jain_1976', 'Churchill_1977', 'Chen_1979', 'Round_1980', 'Shacham_1980', 'Barr_1981', 'Zigrang_Sylvester_1', 'Zigrang_Sylvester_2', 'Haaland', 'Serghides_1', 'Serghides_2', 'Tsal_1989', 'Manadilli_1997', 'Romeo_2002', 'Sonnad_Goudar_2006', 'Rao_Kumar_2007', 'Buzzelli_2008', 'Avci_Karagoz_2009', 'Papaevangelo_2010', 'Brkic_2011_1', 'Brkic_2011_2', 'Fang_2011', 'Blasius', 'von_Karman', 'Prandtl_von_Karman_Nikuradse', 'ft_Crane', 'helical_laminar_fd_White', 'helical_laminar_fd_Mori_Nakayama', 'helical_laminar_fd_Schmidt', 'helical_turbulent_fd_Schmidt', 'helical_turbulent_fd_Mori_Nakayama', 'helical_turbulent_fd_Prasad', 'helical_turbulent_fd_Czop', 'helical_turbulent_fd_Guo', 'helical_turbulent_fd_Ju', 'helical_turbulent_fd_Srinivasan', 'helical_turbulent_fd_Mandal_Nigam', 'helical_transition_Re_Seth_Stahel', 'helical_transition_Re_Ito', 'helical_transition_Re_Kubair_Kuloor', 'helical_transition_Re_Kutateladze_Borishanskii', 'helical_transition_Re_Schmidt', 'helical_transition_Re_Srinivasan', 'LAMINAR_TRANSITION_PIPE', 'oregon_smooth_data', 'friction_plate_Martin_1999', 'friction_plate_Martin_VDI', 'friction_plate_Kumar', 'friction_plate_Muley_Manglik'];
 
 
 let fuzzy_match_fun = null;
 export function fuzzy_match({name, strings}) {
-    var fuzzy_match_fun;
     if( fuzzy_match_fun !== null ) {
         return fuzzy_match_fun(name, strings);
     }
-    try {
-        const { process, fuzz } = require( './fuzzywuzzy' );
-        let fuzzy_match_fun = (name, strings) => { process.extract(name, strings, { limit: 10 })[0][0] };
-    }        // extractOne is faster but less reliable
-        //fuzzy_match_fun = lambda name, strings: process.extractOne(name, strings, scorer=fuzz.partial_ratio)[0]
- catch( e ) /* ImportError */ { // pragma: no cover
-        const difflib = require( './difflib' );
-        fuzzy_match_fun = (name, strings) => { difflib.get_close_matches(name, strings, { n: 1, cutoff: 0 })[0] };
-    }
+    // try {
+        
+    let fuzzy_match_fun = (name, strings) => { fuzzball.extract(name, strings, { limit: 10 })[0][0] };
+    // }
+    // catch( e ) /* ImportError */ { // pragma: no cover
+    //     const difflib = require( './difflib' );
+    //     fuzzy_match_fun = (name, strings) => { difflib.get_close_matches(name, strings, { n: 1, cutoff: 0 })[0] };
+    // }
     return fuzzy_match_fun(name, strings);
 }
 
@@ -67,6 +67,7 @@ export function Colebrook({Re, eD, tol=null}) {
         //lambert_term = LambertW(Math.log(Math.sqrt(10))*Math.sqrt(sub))
         //den = Math.log(10)*eD_Re - 18.574*lambert_term
         //return float(Math.log(10)**2*Rational('3.7')**2*Rational('2.51')**2/(den*den))
+
         // TODO: replace mpmath (for exact solutions) with JS equivalent
         // try {
         //     const { mpf, Math.log, mp, Math.sqrt as sqrtmp } = require( './mpmath' );
@@ -75,30 +76,36 @@ export function Colebrook({Re, eD, tol=null}) {
         //     throw new Error( 'ImportError','For exact solutions, the `mpmath` library is '
         //                       'required' );
         // }
-        mp.dps = 50;
-        Re = mpf(Re);
-        let eD_Re = mpf(eD)*Re;
-        let sub = 1/mpf('6.3001')*10**(1/mpf('9.287')*eD_Re)*Re*Re;
-        let lambert_term = mp_lambertw(Math.log(sqrtmp(10))*sqrtmp(sub));
+        // mp.dps = 50;
+        // Re = mpf(Re);
+        // let eD_Re = mpf(eD)*Re;
+        // let sub = 1/mpf('6.3001')*10**(1/mpf('9.287')*eD_Re)*Re*Re;
+        // let lambert_term = mp_lambertw(Math.log(sqrtmp(10))*sqrtmp(sub));
+        // let den = Math.log(10)*eD_Re - 18.574*lambert_term;
+        // return float(Math.log(10)**2*mpf('3.7')**2*mpf('2.51')**2/(den*den));
+
+        let eD_Re = eD*Re;
+        let sub = 1/6.3001*10**(1/9.287*eD_Re)*Re*Re;
+        let lambert_term = lambert_W0(Math.log(Math.sqrt(10))*Math.sqrt(sub));
         let den = Math.log(10)*eD_Re - 18.574*lambert_term;
-        return float(Math.log(10)**2*mpf('3.7')**2*mpf('2.51')**2/(den*den));
-}
+        return float(Math.log(10)**2*3.7**2*2.51**2/(den*den));
+    }
     if( tol === null ) {
         try {
-            eD_Re = eD*Re;
+            let eD_Re = eD*Re;
             // 9.287 = 2.51*3.7; 6.3001 = 2.51**2
             // xn = 1/6.3001 = 0.15872763924382155
             // 1/9.287 = 0.10767739851405189
-            let sub = 0.15872763924382155*10.0**(0.10767739851405189*eD_Re)*Re*Re;
+            let sub = (1/6.3001)*10.0**((1/9.287)*eD_Re)*Re*Re;
             if( !isFinite(sub) ) {
                 //  Can't continue, need numerical approach
                 throw new Error( 'OverflowError' );
             }
-            lambert_term = float(lambertw(1.151292546497022950546806896454654633998870849609375*Math.sqrt(sub)).real);
+            let lambert_term = float(lambertw(1.151292546497022950546806896454654633998870849609375*Math.sqrt(sub)).real);
             // Math.log(10) = 2.302585...; 2*2.51*3.7 = 18.574
             // 457.28... = Math.log(10)**2*3.7**2*2.51**2
-            let den = 2.30258509299404590109361379290930926799774169921875*eD_Re - 18.574*lambert_term;
-            return 457.28006463294371997108100913465023040771484375/(den*den);
+            let den = Math.log(10)*eD_Re - 18.574*lambert_term;
+            return (Math.log(10)**2*3.7**2*2.51**2)/(den*den);
         } catch( e ) /* OverflowError */ {
             /* pass */ 
         }
@@ -107,18 +114,19 @@ export function Colebrook({Re, eD, tol=null}) {
     if( tol === null ) {
         tol = 1e-12;
     }
+    let fd_guess;
     try {
-        let fd_guess = Clamond(Re, eD);
+        fd_guess = Clamond(Re, eD);
     } catch( e ) /* ValueError */ {
         fd_guess = Blasius(Re);
     }
     function err(x) {
         // Convert the newton search domain to always positive
-        let f_12_inv = 1.0/Math.sqrt(abs(x));
+        let f_12_inv = 1.0/Math.sqrt(Math.abs(x));
         // 0.27027027027027023 = 1/3.7
         return f_12_inv + 2.0*Math.log10(eD*0.27027027027027023 + 2.51/Re*f_12_inv);
     }
-    let fd = abs(secant(err, fd_guess, { xtol: tol }));
+    let fd = Math.abs(secant(err, fd_guess, { xtol: tol }));
     return fd;
 }
 
@@ -405,44 +413,44 @@ export function ft_Crane(D) {
 }
 
 
-let fmethods = {'Moody': (4000.0, 100000000.0, 0.0, 1.0),
- 'Alshul_1952': (null, null, null, null),
- 'Wood_1966': (4000.0, 50000000.0, 1e-05, 0.04),
- 'Churchill_1973': (null, null, null, null),
- 'Eck_1973': (null, null, null, null),
- 'Jain_1976': (5000.0, 10000000.0, 4e-05, 0.05),
- 'Swamee_Jain_1976': (5000.0, 100000000.0, 1e-06, 0.05),
- 'Churchill_1977': (null, null, null, null),
- 'Chen_1979': (4000.0, 400000000.0, 1e-07, 0.05),
- 'Round_1980': (4000.0, 400000000.0, 0.0, 0.05),
- 'Shacham_1980': (4000.0, 400000000.0, null, null),
- 'Barr_1981': (null, null, null, null),
- 'Zigrang_Sylvester_1': (4000.0, 100000000.0, 4e-05, 0.05),
- 'Zigrang_Sylvester_2': (4000.0, 100000000.0, 4e-05, 0.05),
- 'Haaland': (4000.0, 100000000.0, 1e-06, 0.05),
- 'Serghides_1': (null, null, null, null),
- 'Serghides_2': (null, null, null, null),
- 'Tsal_1989': (4000.0, 100000000.0, 0.0, 0.05),
- 'Manadilli_1997': (5245.0, 100000000.0, 0.0, 0.05),
- 'Romeo_2002': (3000.0, 150000000.0, 0.0, 0.05),
- 'Sonnad_Goudar_2006': (4000.0, 100000000.0, 1e-06, 0.05),
- 'Rao_Kumar_2007': (null, null, null, null),
- 'Buzzelli_2008': (null, null, null, null),
- 'Avci_Karagoz_2009': (null, null, null, null),
- 'Papaevangelo_2010': (10000.0, 10000000.0, 1e-05, 0.001),
- 'Brkic_2011_1': (null, null, null, null),
- 'Brkic_2011_2': (null, null, null, null),
- 'Fang_2011': (3000.0, 100000000.0, 0.0, 0.05),
- 'Clamond': (0, null, 0.0, null),
- 'Colebrook': (0, null, 0.0, null)};
+let fmethods = {'Moody': [4000.0, 100000000.0, 0.0, 1.0],
+ 'Alshul_1952': [null, null, null, null],
+ 'Wood_1966': [4000.0, 50000000.0, 1e-05, 0.04],
+ 'Churchill_1973': [null, null, null, null],
+ 'Eck_1973': [null, null, null, null],
+ 'Jain_1976': [5000.0, 10000000.0, 4e-05, 0.05],
+ 'Swamee_Jain_1976': [5000.0, 100000000.0, 1e-06, 0.05],
+ 'Churchill_1977': [null, null, null, null],
+ 'Chen_1979': [4000.0, 400000000.0, 1e-07, 0.05],
+ 'Round_1980': [4000.0, 400000000.0, 0.0, 0.05],
+ 'Shacham_1980': [4000.0, 400000000.0, null, null],
+ 'Barr_1981': [null, null, null, null],
+ 'Zigrang_Sylvester_1': [4000.0, 100000000.0, 4e-05, 0.05],
+ 'Zigrang_Sylvester_2': [4000.0, 100000000.0, 4e-05, 0.05],
+ 'Haaland': [4000.0, 100000000.0, 1e-06, 0.05],
+ 'Serghides_1': [null, null, null, null],
+ 'Serghides_2': [null, null, null, null],
+ 'Tsal_1989': [4000.0, 100000000.0, 0.0, 0.05],
+ 'Manadilli_1997': [5245.0, 100000000.0, 0.0, 0.05],
+ 'Romeo_2002': [3000.0, 150000000.0, 0.0, 0.05],
+ 'Sonnad_Goudar_2006': [4000.0, 100000000.0, 1e-06, 0.05],
+ 'Rao_Kumar_2007': [null, null, null, null],
+ 'Buzzelli_2008': [null, null, null, null],
+ 'Avci_Karagoz_2009': [null, null, null, null],
+ 'Papaevangelo_2010': [10000.0, 10000000.0, 1e-05, 0.001],
+ 'Brkic_2011_1': [null, null, null, null],
+ 'Brkic_2011_2': [null, null, null, null],
+ 'Fang_2011': [3000.0, 100000000.0, 0.0, 0.05],
+ 'Clamond': [0, null, 0.0, null],
+ 'Colebrook': [0, null, 0.0, null]};
 export function friction_factor_methods({Re, eD=0.0, check_ranges=true}) {
     if( check_ranges ) {
         if( Re < LAMINAR_TRANSITION_PIPE ) {
             return ['laminar'];
         }
         let methods = [];
-        for( n of fmethods ) {
-            item = fmethods[n];
+        for( let n of fmethods ) {
+            let item = fmethods[n];
             let [Re_min, Re_max, eD_min, eD_max] = item;
             if( Re_min !== null && Re < Re_min ) {
                 continue;
@@ -469,8 +477,9 @@ export function friction_factor({Re, eD=0.0, Method='Clamond', Darcy=true}) {
     if( Method === null ) {
         let Method = 'Clamond';
     }
+    let f;
     if( Re < LAMINAR_TRANSITION_PIPE || Method === 'laminar' ) {
-        let f = friction_laminar(Re);
+        f = friction_laminar(Re);
     } else if( Method === "Clamond" ) {
         f = Clamond(Re, eD, false);
     } else if( Method === "Colebrook" ) {
@@ -676,8 +685,9 @@ let _bad_curved_transition_method = `Invalid method specified for transition Rey
 let curved_friction_turbulent_methods_list = ['Schmidt turbulent', 'Mori Nakayama turbulent', 'Prasad', 'Czop', 'Guo', 'Ju', 'Mandel Nigam', 'Srinivasan turbulent'];
 let curved_friction_laminar_methods_list = ['White', 'Mori Nakayama laminar', 'Schmidt laminar'];
 export function helical_Re_crit({Di, Dc, Method='Schmidt'}) {
+    let Re_crit;
     if( Method === 'Schmidt' ) {
-        let Re_crit = helical_transition_Re_Schmidt(Di, Dc);
+        Re_crit = helical_transition_Re_Schmidt(Di, Dc);
     } else if( Method === 'Seth Stahel' ) {
         Re_crit = helical_transition_Re_Seth_Stahel(Di, Dc);
     } else if( Method === 'Ito' ) {
@@ -718,14 +728,16 @@ export function friction_factor_curved({Re, Di, Dc, roughness=0.0, Method=null,
     let Re_crit = helical_Re_crit( {Di: Di, Dc: Dc, Method: Rec_method });
     let turbulent = Re < Re_crit ? false : true;
 
+    let Method2;
     if( Method === null ) {
-        let Method2 = turbulent ? turbulent_method : laminar_method;
+        Method2 = turbulent ? turbulent_method : laminar_method;
     } else {
         Method2 = Method; // Use second variable to keep numba types happy
     }
     // Laminar
+    let f;
     if( Method2 === 'Schmidt laminar' ) {
-        let f = helical_laminar_fd_Schmidt(Re, Di, Dc);
+        f = helical_laminar_fd_Schmidt(Re, Di, Dc);
     } else if( Method2 === 'White' ) {
         f = helical_laminar_fd_White(Re, Di, Dc);
     } else if( Method2 === 'Mori Nakayama laminar' ) {
@@ -762,9 +774,10 @@ export function friction_factor_curved({Re, Di, Dc, roughness=0.0, Method=null,
 export function friction_plate_Martin_1999({Re, plate_enlargement_factor}) {
     let phi = plate_enlargement_factor;
 
+    let f0, f1;
     if( Re < 2000. ) {
-        let f0 = 16./Re;
-        let f1 = 149./Re + 0.9625;
+        f0 = 16./Re;
+        f1 = 149./Re + 0.9625;
     } else {
         f0 = (1.56*Math.log(Re) - 3.0)**-2;
         f1 = 9.75*Re**-0.289;
@@ -780,9 +793,10 @@ export function friction_plate_Martin_1999({Re, plate_enlargement_factor}) {
 export function friction_plate_Martin_VDI({Re, plate_enlargement_factor}) {
     let phi = plate_enlargement_factor;
 
+    let f0, f1;
     if( Re < 2000. ) {
-        let f0 = 64./Re;
-        let f1 = 597./Re + 3.85;
+        f0 = 64./Re;
+        f1 = 597./Re + 3.85;
     } else {
         f0 = (1.8*Math.log10(Re) - 1.5)**-2;
         f1 = 39.*Re**-0.289;
@@ -806,24 +820,26 @@ let Kumar_C2s = [[50.0, 19.40, 2.990], [47.0, 18.29, 1.441], [34.0, 11.25, 0.772
 // curve fit as the original did not contain and coefficients only a plot
 let Kumar_Ps = [[1.0, 0.589, 0.183], [1.0, 0.652, 0.206], [1.0, 0.631, 0.161], [1.0, 0.457, 0.215], [1.0, 0.451, 0.213]];
 export function friction_plate_Kumar({Re, chevron_angle}) {
-    let beta_list_len = len(Kumar_beta_list);
+    let beta_list_len = Kumar_beta_list.length;
 
+    let C2_options, p_options, Re_ranges;
     for( let i; i<beta_list_len; i++ ) {
         if( chevron_angle <= Kumar_beta_list[i] ) {
-            let [C2_options, p_options, Re_ranges] = [Kumar_C2s[i], Kumar_Ps[i], Kumar_fd_Res[i]];
+            [C2_options, p_options, Re_ranges] = [Kumar_C2s[i], Kumar_Ps[i], Kumar_fd_Res[i]];
             break;
         } else if( i === beta_list_len-1 ) {
-            let [C2_options, p_options, Re_ranges] = [Kumar_C2s[-1], Kumar_Ps[-1], Kumar_fd_Res[-1]];
+            [C2_options, p_options, Re_ranges] = [Kumar_C2s[-1], Kumar_Ps[-1], Kumar_fd_Res[-1]];
         }
     }
-    let Re_len = len(Re_ranges);
+    let Re_len = Re_ranges.length;
 
+    let C2, p;
     for( let j; j<Re_len; j++ ) {
         if( Re <= Re_ranges[j] ) {
-            let [C2, p] = [C2_options[j], p_options[j]];
+            [C2, p] = [C2_options[j], p_options[j]];
             break;
         } else if( j === Re_len-1 ) {
-            let [C2, p] = [C2_options[-1], p_options[-1]];
+            [C2, p] = [C2_options[-1], p_options[-1]];
         }
 
     // Originally in Fanning friction factor basis
@@ -1112,25 +1128,27 @@ export let _Farshad_roughness = {'Plastic coated': (5E-6, 0.0002, -1.0098),
                       'Fiberglass lining': (38E-6, 0.0016, -1.0086),
                       'Cr13, bare': (55E-6, 0.0021, -1.0055)  };
 
-try {
-    if(IS_NUMBA) // type: ignore
-        {
-            let _Farshad_roughness_keys = Object.keys(_Farshad_roughness);
-            let _Farshad_roughness_values = Object.values(_Farshad_roughness);
-        }
-    }
-catch(e) {
-    /* pass */
-}
+let _Farshad_roughness_keys = Object.keys(_Farshad_roughness);
+let _Farshad_roughness_values = Object.values(_Farshad_roughness);
+// try {
+//     if(IS_NUMBA) // type: ignore
+//         {
+//         }
+//     }
+// catch(e) {
+//     /* pass */
+// }
 
 export function roughness_Farshad({ID=null, D=null, coeffs=null}) {
+    let A, B;
     // Case 1, coeffs given; only run if ID is not given.
     if( ID === null && coeffs !== null ) {
-        let [A, B] = coeffs;
+        [A, B] = coeffs;
         return A*(D/inch)**(B + 1.0)*inch;
     }
+    let dat;
     if( ID in _Farshad_roughness ) { // numba: delete
-        let dat = _Farshad_roughness[ID]; // numba: delete
+        dat = _Farshad_roughness[ID]; // numba: delete
     }
     if( D === null ) {
         return dat[0];
@@ -1144,8 +1162,9 @@ export function roughness_Farshad({ID=null, D=null, coeffs=null}) {
 let roughness_clean_names = Object.keys(_roughness);
 updateObj(roughness_clean_names, Object.keys(_Farshad_roughness));
 export function nearest_material_roughness({name, clean=null}) {
+    let d;
     if( clean === null ) {
-        let d = Object.keys(_all_roughness);
+        d = Object.keys(_all_roughness);
     } else {
         if( clean ) {
             d = roughness_clean_names;

@@ -1,5 +1,7 @@
 import { degrees, radians } from './fluids.helpers.js';
 let nan = Number("NaN");
+import { isInstance } from './_pyjs.js';
+
 export function aoi_projection({surface_tilt, surface_azimuth, solar_zenith, solar_azimuth}) {
     let projection = (
         Math.cos(radians(surface_tilt)) * Math.cos(radians(solar_zenith)) +
@@ -63,7 +65,7 @@ export function get_relative_airmass({zenith, model='kastenyoung1989'}) {
         } catch( e ) {
             am = nan;
         }
-        if( _pyjs.isInstance(am, complex) ) {
+        if( isInstance(am, complex) ) {
             am = nan;
         }
     } else {
